@@ -7,9 +7,23 @@ class OpenAIService:
     def __init__(self):
         self.api_key = Config.OPENAI_API_KEY
         self.client = None
+        self.is_gemini = False
+        
         if self.api_key:
+            self.api_key = self.api_key.strip()
+            # Detect if it's a Gemini key (typically starts with AIzaSy or AQ...)
+            if not self.api_key.startswith("sk-"):
+                self.is_gemini = True
+                
             try:
-                self.client = OpenAI(api_key=self.api_key)
+                if self.is_gemini:
+                    self.client = OpenAI(
+                        api_key=self.api_key,
+                        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+                    )
+                    print("Initialized OpenAI client with Gemini compatibility layer.")
+                else:
+                    self.client = OpenAI(api_key=self.api_key)
             except Exception as e:
                 print(f"Failed to initialize OpenAI client: {e}")
                 self.client = None
@@ -17,9 +31,9 @@ class OpenAIService:
     def get_embedding(self, text):
         """
         Generates text embedding using text-embedding-3-small (1536 dims).
-        Returns a mock vector of floats if OpenAI client is not initialized.
+        Returns a mock vector of floats if OpenAI client is not initialized or if using Gemini.
         """
-        if not self.client:
+        if not self.client or self.is_gemini:
             # Return a deterministic mock embedding vector of 1536 dimensions
             import random
             random.seed(hash(text))
@@ -39,7 +53,7 @@ class OpenAIService:
 
     def analyze_clause_against_policy(self, contract_chunk_text, contract_page, contract_para, policy_chunks):
         """
-        Calls OpenAI to audit a contract chunk against matching policy chunks.
+        Calls OpenAI/Gemini to audit a contract chunk against matching policy chunks.
         Returns a structured list of compliance findings or empty list if compliant.
         """
         if not self.client:
@@ -84,9 +98,10 @@ Each object must have the following structure:
 }}
 """
 
+        model_name = "gemini-1.5-flash" if self.is_gemini else "gpt-4o"
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=model_name,
                 messages=[
                     {"role": "system", "content": "You are a professional legal auditor that outputs JSON arrays of findings."},
                     {"role": "user", "content": prompt}
@@ -139,9 +154,10 @@ Include a section at the end called "CITATIONS" listing each cited source as:
 - Policy 'Name' Page A, Paragraph B
 """
 
+        model_name = "gemini-1.5-flash" if self.is_gemini else "gpt-4o"
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=model_name,
                 messages=[
                     {"role": "system", "content": "You are a helpful contract auditor. Always cite page and paragraph numbers."},
                     {"role": "user", "content": prompt}
