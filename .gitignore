@@ -1,0 +1,40 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+bin/
+lib/
+include/
+pip-selfcheck.json
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# Node/Frontend dependencies and builds
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.eslintcache
+.vite/
+
+# Databases and Local Storage
+instance/
+backend/instance/
+compliance.db
+backend/uploads/
+uploads/
+
+# Environment configurations and secrets
+.env
+*.env
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db

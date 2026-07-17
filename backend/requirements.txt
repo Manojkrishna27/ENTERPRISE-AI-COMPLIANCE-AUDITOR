@@ -1,0 +1,15 @@
+Flask==3.0.2
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+Flask-JWT-Extended==4.6.0
+Flask-CORS==4.0.0
+psycopg2-binary==2.9.9
+gunicorn==21.2.0
+PyMuPDF==1.23.26
+python-docx==1.1.0
+qdrant-client==1.8.0
+openai==1.14.1
+redis==5.0.3
+python-dotenv==1.0.1
+reportlab==4.1.0
+requests==2.31.0
