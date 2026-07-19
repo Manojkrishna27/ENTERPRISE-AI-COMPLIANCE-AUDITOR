@@ -12,18 +12,20 @@ import Policies from './pages/Policies'
 import Search from './pages/Search'
 import Reports from './pages/Reports'
 import AdminPanel from './pages/AdminPanel'
+import Landing from './pages/Landing'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Auth Public Routes */}
+        {/* Public Routes */}
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
         {/* Protected Dashboard/Workstation Routes */}
         <Route 
-          path="/" 
+          path="/dashboard" 
           element={
             <ProtectedRoute>
               <Dashboard />
