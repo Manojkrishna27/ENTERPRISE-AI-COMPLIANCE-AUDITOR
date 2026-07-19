@@ -39,6 +39,5 @@ uploads/
 .DS_Store
 Thumbs.db
 
-# copy_mockups from gemini
-.copy_mockups.py
+
 
