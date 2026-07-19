@@ -35,7 +35,7 @@ const Sidebar = () => {
             🛡️
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-wider uppercase text-text-primary leading-none">Antigravity</h1>
+            <h1 className="text-sm font-bold tracking-wider uppercase text-text-primary leading-none">LexGuard AI</h1>
             <span className="text-[10px] text-text-muted font-medium">Compliance Auditor</span>
           </div>
         </div>
