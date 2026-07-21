@@ -2,10 +2,12 @@ import os
 import fitz  # PyMuPDF
 import docx
 from flask import current_app
+from llama_index.core import Document
+from llama_index.core.node_parser import SentenceSplitter
 
 class DocumentParser:
-    @staticmethod
-    def parse_pdf(file_path):
+    @classmethod
+    def parse_pdf(cls, file_path):
         """
         Parses a PDF using PyMuPDF (fitz) and extracts text blocks,
         preserving page numbers and paragraph (block) numbers.
@@ -20,7 +22,8 @@ class DocumentParser:
             blocks = page.get_text("blocks")
             
             for block in blocks:
-                text = block[4].strip()
+                # Replace non-breaking spaces and strip
+                text = block[4].replace('\xa0', ' ').strip()
                 block_no = block[5]
                 block_type = block[6]
                 
@@ -29,39 +32,80 @@ class DocumentParser:
                     chunks.append({
                         "text": text,
                         "page_number": page_num,
-                        "paragraph_number": block_no + 1,
-                        "chunk_position": chunk_position
+                        "paragraph_number": block_no + 1
                     })
-                    chunk_position += 1
                     
         doc.close()
-        return chunks
+        return cls._apply_semantic_chunking(chunks)
 
-    @staticmethod
-    def parse_docx(file_path):
+    @classmethod
+    def parse_docx(cls, file_path):
         """
-        Parses a DOCX using python-docx and extracts paragraphs.
+        Parses a DOCX using python-docx and extracts paragraphs and tables.
         Word files do not have rigid pages, so pages are simulated
-        every 10 paragraphs.
+        every 10 paragraphs/table rows.
         """
         chunks = []
         doc = docx.Document(file_path)
         
         chunk_position = 0
-        for para_idx, para in enumerate(doc.paragraphs):
-            text = para.text.strip()
+        element_idx = 0
+        
+        # Extract paragraphs
+        for para in doc.paragraphs:
+            text = para.text.replace('\xa0', ' ').strip()
             if text:
-                # Estimate a page number (every 10 paragraphs constitutes a page)
-                simulated_page = (para_idx // 10) + 1
+                simulated_page = (element_idx // 10) + 1
                 chunks.append({
                     "text": text,
                     "page_number": simulated_page,
-                    "paragraph_number": para_idx + 1,
-                    "chunk_position": chunk_position
+                    "paragraph_number": element_idx + 1
                 })
-                chunk_position += 1
+                element_idx += 1
                 
-        return chunks
+        # Extract tables
+        for table in doc.tables:
+            for row in table.rows:
+                row_data = [cell.text.replace('\xa0', ' ').strip() for cell in row.cells if cell.text.strip()]
+                if row_data:
+                    text = " | ".join(row_data)
+                    simulated_page = (element_idx // 10) + 1
+                    chunks.append({
+                        "text": f"[TABLE ROW]: {text}",
+                        "page_number": simulated_page,
+                        "paragraph_number": element_idx + 1
+                    })
+                    element_idx += 1
+                
+        return cls._apply_semantic_chunking(chunks)
+
+    @classmethod
+    def _apply_semantic_chunking(cls, raw_chunks):
+        """
+        Applies LlamaIndex SentenceSplitter (512 tokens, 64 overlap).
+        Documents are created per paragraph to retain precise page/paragraph metadata.
+        """
+        docs = [
+            Document(
+                text=c["text"], 
+                metadata={"page_number": c["page_number"], "paragraph_number": c["paragraph_number"]}
+            ) 
+            for c in raw_chunks
+        ]
+        
+        splitter = SentenceSplitter(chunk_size=512, chunk_overlap=64)
+        nodes = splitter.get_nodes_from_documents(docs)
+        
+        final_chunks = []
+        for idx, node in enumerate(nodes):
+            final_chunks.append({
+                "text": node.text,
+                "page_number": node.metadata.get("page_number", 1),
+                "paragraph_number": node.metadata.get("paragraph_number", 1),
+                "chunk_position": idx
+            })
+            
+        return final_chunks
 
     @classmethod
     def parse_document(cls, file_path, file_type):

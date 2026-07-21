@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShieldCheck, Mail, Lock } from 'lucide-react'
+import { ShieldCheck, Mail, Lock, ArrowRight, ChevronRight } from 'lucide-react'
 import api from '../services/api'
 
 const Login = () => {
@@ -28,88 +28,143 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-900 to-[#0B0F19] flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-card/60 backdrop-blur-xl border border-border/80 rounded-3xl shadow-2xl p-8 flex flex-col items-center">
+    <div className="min-h-screen w-full flex bg-[#09090b] text-slate-100 overflow-hidden font-sans">
+      {/* Left side: Premium Branding & Visuals */}
+      <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden border-r border-white/5">
         
-        {/* Brand Logo */}
-        <div className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-text-primary text-2xl shadow-xl shadow-brand/35 mb-4 animate-bounce">
-          🛡️
+        {/* Animated Background Gradients */}
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] bg-indigo-600/20 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-blue-600/20 rounded-full blur-[100px] mix-blend-screen" style={{ animationDelay: '2s', animationDuration: '7s' }}></div>
+        
+        {/* Grid Pattern Overlay */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)]"></div>
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <ShieldCheck className="text-white w-6 h-6" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-white">TrustGuard AI</span>
+          </div>
         </div>
-        <h2 className="text-2xl font-bold text-text-primary mb-1">Corporate Login</h2>
-        <p className="text-sm text-text-secondary mb-8">AI Compliance & Contract Auditor</p>
-
-        {/* Error Notification */}
-        {error && (
-          <div className="w-full bg-risk-high/15 border border-risk-high/30 text-risk-high text-sm px-4 py-3 rounded-2xl mb-6">
-            {error}
+        
+        <div className="relative z-10 mb-20">
+          <h1 className="text-5xl font-extrabold tracking-tight mb-6 leading-tight">
+            Automate <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-400">compliance.</span><br />
+            Accelerate <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">contracts.</span>
+          </h1>
+          <p className="text-lg text-slate-400 max-w-md font-light leading-relaxed">
+            Enterprise-grade auditing powered by advanced AI models. Secure, reliable, and blazingly fast.
+          </p>
+          
+          <div className="mt-12 flex gap-4">
+             <div className="flex items-center gap-2 text-sm text-slate-400 bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/5">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" /> SOC2 Certified
+             </div>
+             <div className="flex items-center gap-2 text-sm text-slate-400 bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/5">
+                <Lock className="w-4 h-4 text-blue-400" /> E2E Encryption
+             </div>
           </div>
-        )}
+        </div>
+      </div>
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="w-full space-y-5">
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-text-muted mb-2 block">
-              Business Email
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-text-muted">
-                <Mail className="w-5 h-5" />
-              </span>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-background border border-border focus:border-brand rounded-2xl pl-12 pr-4 py-3.5 text-sm text-text-primary focus:ring-1 focus:ring-brand outline-none transition-all duration-200"
-                placeholder="you@company.com"
-              />
+      {/* Right side: Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative z-10">
+        
+        {/* Mobile Logo */}
+        <div className="absolute top-8 left-8 flex items-center gap-3 lg:hidden">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center">
+              <ShieldCheck className="text-white w-5 h-5" />
             </div>
+            <span className="text-lg font-bold tracking-tight text-white">TrustGuard AI</span>
+        </div>
+
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center sm:text-left">
+            <h2 className="text-3xl font-bold tracking-tight text-white mb-2">Welcome back</h2>
+            <p className="text-slate-400 text-sm">Sign in to your enterprise workstation</p>
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-text-muted block">
-                Password
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm px-4 py-3 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-300">
+                Business Email
               </label>
-              <Link to="/forgot-password" className="text-xs font-semibold text-brand-light hover:underline">
-                Forgot password?
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl pl-11 pr-4 py-3 text-sm focus:bg-white/10 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-slate-600"
+                  placeholder="name@company.com"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-medium text-slate-300">
+                  Password
+                </label>
+                <Link to="/forgot-password" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 text-white rounded-xl pl-11 pr-4 py-3 text-sm focus:bg-white/10 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-slate-600"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full relative group overflow-hidden rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 text-sm transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+              <div className="relative flex items-center justify-center gap-2">
+                {loading ? (
+                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </div>
+            </button>
+          </form>
+
+          <div className="mt-8 pt-8 border-t border-white/5 text-center">
+            <p className="text-sm text-slate-400">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-white font-medium hover:text-indigo-400 inline-flex items-center transition-colors">
+                Request access <ChevronRight className="w-4 h-4 ml-0.5" />
               </Link>
-            </div>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-text-muted">
-                <Lock className="w-5 h-5" />
-              </span>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-background border border-border focus:border-brand rounded-2xl pl-12 pr-4 py-3.5 text-sm text-text-primary focus:ring-1 focus:ring-brand outline-none transition-all duration-200"
-                placeholder="••••••••"
-              />
-            </div>
+            </p>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-brand hover:bg-brand-dark disabled:opacity-50 text-text-primary font-bold py-3.5 rounded-2xl shadow-lg shadow-brand/20 transition-all duration-200 flex items-center justify-center gap-2 mt-2"
-          >
-            {loading ? (
-              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-            ) : (
-              "Sign In to Workstation"
-            )}
-          </button>
-        </form>
-
-        {/* Redirect */}
-        <p className="text-sm text-text-secondary mt-8">
-          First time here?{' '}
-          <Link to="/register" className="text-brand-light hover:underline font-semibold">
-            Request an Account
-          </Link>
-        </p>
+        </div>
       </div>
     </div>
   )

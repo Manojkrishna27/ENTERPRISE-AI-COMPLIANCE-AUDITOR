@@ -78,7 +78,8 @@ const Policies = () => {
         setSuccess('')
       }, 1500)
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to upload policy standard')
+      const backendError = err.response?.data?.error;
+      setError(backendError ? `Upload Failed: ${backendError}` : (err.response?.data?.msg || 'Failed to upload policy standard'))
     } finally {
       setUploading(false)
     }

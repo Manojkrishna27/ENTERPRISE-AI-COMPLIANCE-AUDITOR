@@ -1,0 +1,76 @@
+@startuml database-erd
+skinparam monochrome true
+skinparam shadowing false
+skinparam linetype ortho
+
+title Enterprise Compliance Auditor - Entity Relationship Diagram
+
+entity "Department" as department {
+  * id : UUID <<PK>>
+  --
+  * name : String
+  created_at : DateTime
+}
+
+entity "User" as user {
+  * id : UUID <<PK>>
+  --
+  * email : String
+  * password_hash : String
+  * name : String
+  * role : String
+  * department_id : UUID <<FK>>
+  created_at : DateTime
+}
+
+entity "Contract" as contract {
+  * id : UUID <<PK>>
+  --
+  * name : String
+  description : String
+  * department_id : UUID <<FK>>
+  * owner_id : UUID <<FK>>
+  status : String
+  current_version : Integer
+  created_at : DateTime
+}
+
+entity "ContractVersion" as contract_version {
+  * id : UUID <<PK>>
+  --
+  * contract_id : UUID <<FK>>
+  * version_number : Integer
+  * s3_key : String
+  * file_type : String
+  status : String
+  created_at : DateTime
+}
+
+entity "ContractChunk" as contract_chunk {
+  * id : UUID <<PK>>
+  --
+  * version_id : UUID <<FK>>
+  * chunk_text : Text
+  page_number : Integer
+  paragraph_number : Integer
+  chunk_position : Integer
+  qdrant_id : String
+}
+
+entity "Policy" as policy {
+  * id : UUID <<PK>>
+  --
+  * name : String
+  * description : String
+  * department_id : UUID <<FK>>
+  created_at : DateTime
+}
+
+department ||--o{ user
+department ||--o{ contract
+department ||--o{ policy
+user ||--o{ contract
+contract ||--o{ contract_version
+contract_version ||--o{ contract_chunk
+
+@enduml

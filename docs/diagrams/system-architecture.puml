@@ -1,0 +1,58 @@
+@startuml system-architecture
+!define RECTANGLE class
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam node {
+    BackgroundColor white
+    BorderColor black
+}
+
+title Enterprise AI Compliance Auditor - System Architecture
+
+node "Client Tier" {
+    [React 19 Frontend Dashboard] as UI
+}
+
+node "Nginx Reverse Proxy / Load Balancer" {
+    [Nginx API Gateway] as Gateway
+}
+
+node "Application Tier (Docker Containers)" {
+    [Flask Backend API] as Backend
+    [JWT Auth / RBAC] as Auth
+    [LlamaIndex RAG Engine] as RAG
+    [Document Parser (PyMuPDF)] as Parser
+    
+    Backend --> Auth
+    Backend --> RAG
+    Backend --> Parser
+}
+
+node "Data Tier (Docker Containers)" {
+    database "PostgreSQL 15" as Postgres {
+        [Relational Data]
+    }
+    database "Qdrant Vector DB" as Qdrant {
+        [Embeddings & Vectors]
+    }
+    database "Redis" as Redis {
+        [Rate Limits & JWT Blocklist]
+    }
+}
+
+cloud "External AI Providers" {
+    [Google Gemini API] as Gemini
+    [OpenAI API] as OpenAI
+}
+
+UI --> Gateway : HTTPS Request
+Gateway --> Backend : Reverse Proxy
+Backend --> Postgres : SQLAlchemy (ACID)
+Backend --> Redis : caching/limits
+RAG --> Qdrant : semantic search (768-dim)
+RAG --> Gemini : _resolve_model (LLM)
+RAG --> OpenAI : fallback (LLM)
+
+@enduml

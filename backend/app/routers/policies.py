@@ -102,10 +102,18 @@ def upload_policy():
         }), 201
         
     except Exception as e:
+        policy_id = policy.id if policy else None
         db.session.rollback()
         # Clean up Qdrant index if failed
-        qdrant_service.delete_policy_chunks(policy.id)
+        if policy_id:
+            try:
+                qdrant_service.delete_policy_chunks(policy_id)
+            except Exception as inner_e:
+                print(f"Error deleting qdrant chunks during rollback: {inner_e}")
+                
         print(f"Error processing policy: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"msg": "Failed to upload and index policy", "error": str(e)}), 500
 
 

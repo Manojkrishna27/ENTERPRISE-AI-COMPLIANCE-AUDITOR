@@ -1,6 +1,6 @@
 import os
 import uuid
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 from app.database import db
@@ -8,6 +8,7 @@ from app.models.contract import Contract, ContractVersion, ContractChunk
 from app.models.user import User
 from app.services.s3_service import storage_service
 from app.services.document_parser import DocumentParser
+from app.services.qdrant_service import qdrant_service
 from app.utils.security import role_required, log_audit
 
 contracts_bp = Blueprint('contracts', __name__)
@@ -20,6 +21,27 @@ def allowed_file(filename):
 @contracts_bp.route('', methods=['GET'])
 @jwt_required()
 def list_contracts():
+    """
+    List all contracts
+    ---
+    tags:
+      - Contracts
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: department_id
+        type: string
+      - in: query
+        name: status
+        type: string
+    responses:
+      200:
+        description: List of contracts
+    """
+    limiter = current_app.extensions['limiter']
+    limiter.limit("60 per minute")(lambda: None)()
+    
     dept_id = request.args.get('department_id')
     status = request.args.get('status')
     
@@ -37,6 +59,29 @@ def list_contracts():
 @jwt_required()
 @role_required('Admin', 'Compliance Officer', 'Legal Reviewer', 'Auditor')
 def upload_contract():
+    """
+    Upload a new contract
+    ---
+    tags:
+      - Contracts
+    security:
+      - Bearer: []
+    parameters:
+      - in: formData
+        name: file
+        type: file
+        required: true
+      - in: formData
+        name: name
+        type: string
+        required: true
+    responses:
+      201:
+        description: Contract uploaded
+    """
+    limiter = current_app.extensions['limiter']
+    limiter.limit("10 per minute")(lambda: None)()
+    
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
@@ -50,7 +95,9 @@ def upload_contract():
 
     name = request.form.get('name')
     description = request.form.get('description', '')
-    department_id = request.form.get('department_id', user.department_id)
+    department_id = request.form.get('department_id')
+    if not department_id:
+        department_id = user.department_id
 
     if not name:
         return jsonify({"msg": "Contract name is required"}), 400
@@ -110,6 +157,10 @@ def upload_contract():
             
         version.status = 'Uploaded'
         db.session.commit()
+        
+        # Index in Qdrant
+        qdrant_service.index_contract_chunks(version.id, db_chunks)
+        db.session.commit() # Save generated qdrant_ids
         
         log_audit(user_id, "CONTRACT_UPLOAD", f"Uploaded contract: {name} (Version 1)")
         
@@ -210,6 +261,11 @@ def upload_version(id):
         # Update contract current version
         contract.current_version = new_version_num
         version.status = 'Uploaded'
+        db.session.commit()
+        
+        # Index in Qdrant
+        db_chunks = ContractChunk.query.filter_by(version_id=version.id).all()
+        qdrant_service.index_contract_chunks(version.id, db_chunks)
         db.session.commit()
         
         log_audit(user_id, "CONTRACT_VERSION_UPLOAD", f"Uploaded version {new_version_num} for contract: {contract.name}")

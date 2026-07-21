@@ -8,8 +8,8 @@ class Contract(db.Model):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    department_id = db.Column(db.String(36), db.ForeignKey('departments.id'), nullable=True)
-    owner_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
+    department_id = db.Column(db.String(36), db.ForeignKey('departments.id', ondelete='SET NULL'), nullable=True)
+    owner_id = db.Column(db.String(36), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     status = db.Column(db.String(30), default='Draft')  # Draft, Pending Review, Approved, Rejected, Archived
     current_version = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

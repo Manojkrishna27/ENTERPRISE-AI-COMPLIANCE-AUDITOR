@@ -1,459 +1,66 @@
-# 🛡️ Enterprise AI Compliance & Contract Auditor
+# Enterprise AI Compliance & Contract Auditor
 
-> AI-powered Enterprise Compliance Platform for automated contract review using **Retrieval-Augmented Generation (RAG)**, semantic search, and Large Language Models.
+A production-grade, multi-tenant AI system designed to automatically ingest legal contracts, compare them against corporate policies using advanced Retrieval-Augmented Generation (RAG), and identify high-risk liabilities, missing clauses, and compliance violations.
 
-![Python](https://img.shields.io/badge/Python-3.11-blue)
-![Flask](https://img.shields.io/badge/Flask-3.x-black)
-![React](https://img.shields.io/badge/React-18-61DAFB)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
-![Redis](https://img.shields.io/badge/Redis-7-red)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED)
-![AWS](https://img.shields.io/badge/AWS-Cloud-orange)
-![Qdrant](https://img.shields.io/badge/Qdrant-VectorDB-purple)
-![License](https://img.shields.io/badge/License-MIT-green)
+## 🚀 Key Features
+* **Enterprise RAG Pipeline**: High-fidelity chunking using PyMuPDF and LlamaIndex.
+* **Dynamic AI Adapters**: Provider-agnostic architecture dynamically supporting Google Gemini (`gemini-1.5-flash`, `gemini-embedding-2`) and OpenAI.
+* **Matryoshka Representation Vectors**: Precision 768-dimensional Qdrant embeddings ensuring perfect semantic spatial relations.
+* **Multi-Tenant Security**: Strict Role-Based Access Control (RBAC), `department_id` Qdrant isolation, and Redis-backed JWT blocklisting.
+* **Production Hardened**: Built-in Request Tracing (`X-Request-ID`), standardized Error APIs, `Flask-Limiter` rate limiting, and deep Kubernetes-style `/ready` probes.
 
----
+## 🏗 Architecture
+This platform utilizes a containerized microservices architecture with a React 19 Frontend and Flask Gunicorn Backend.
 
-# 📖 Overview
+*(See `docs/diagrams/system-architecture.puml` for the full visual diagram)*
 
-Enterprise organizations process thousands of contracts every year.
+### Core Technologies
+- **Backend API:** Python 3.11, Flask, Gunicorn
+- **Database:** PostgreSQL (Relational), Qdrant (Vectors), Redis (Rate Limiting & Cache)
+- **AI Core:** LlamaIndex, Google Gemini API
+- **Deployment:** Docker Compose, Nginx Reverse Proxy
 
-Legal and compliance teams spend significant time reviewing every document against:
+## 📚 Documentation
+Comprehensive documentation can be found in the `docs/` directory:
+- `ARCHITECTURE.md` - System layout and data flow
+- `API_REFERENCE.md` - Complete API guidelines
+- `RAG_WORKFLOW.md` - Deep dive into embedding generation
+- `SECURITY.md` - Threat modeling and RBAC definitions
+- `FINAL_PRODUCTION_REPORT.md` - End-to-end quality audit
 
-- Internal company policies
-- GDPR
-- ISO 27001
-- SOC 2
-- Vendor security standards
-- Procurement rules
-- Privacy regulations
+**Swagger UI:** Available at `http://localhost:5000/apidocs` when the system is running.
 
-Manual review is expensive, slow, and prone to human error.
+## ⚙️ Quick Start
 
-**Enterprise AI Compliance & Contract Auditor** automates this workflow using AI.
-
-The system compares uploaded contracts against enterprise policies using **Retrieval-Augmented Generation (RAG)**, identifies compliance violations, explains the findings, highlights supporting evidence, and generates executive-ready reports.
-
----
-
-# 🎯 Problem Statement
-
-Traditional contract reviews require hours of manual work.
-
-Example:
-
-Company Policy
-
-> Vendors must report security incidents within **24 hours**.
-
-Vendor Contract
-
-> Vendor may notify the company within **7 days**.
-
-The platform automatically detects this conflict, explains why it is non-compliant, highlights the relevant clauses, and recommends compliant wording.
-
----
-
-# ✨ Core Features
-
-## 📄 Smart Document Processing
-
-- Upload PDF and DOCX contracts
-- Upload internal compliance policies
-- Automatic text extraction using PyMuPDF
-- Semantic chunking
-- Metadata preservation
-- Page number tracking
-- Paragraph indexing
-
----
-
-## 🤖 AI Compliance Analysis
-
-Automatically detects
-
-- Missing clauses
-- Security policy violations
-- GDPR issues
-- Privacy risks
-- Weak contractual language
-- Vendor compliance risks
-- Payment risks
-- Confidentiality issues
-- Regulatory gaps
-
-Every finding includes
-
-- Risk Level
-- Explanation
-- Business Impact
-- Recommendation
-- Confidence Score
-
----
-
-## 🔍 Retrieval-Augmented Generation (RAG)
-
-The platform
-
-- Parses documents
-- Creates embeddings
-- Stores vectors inside Qdrant
-- Retrieves only relevant policy sections
-- Sends retrieved context to the LLM
-- Produces explainable compliance analysis
-
----
-
-## 📌 Citation Highlighting
-
-Every AI finding links directly to
-
-- Contract Page
-- Paragraph
-- Policy Page
-- Policy Paragraph
-
-Clicking **Show Evidence**
-
-✔ Opens the PDF
-
-✔ Scrolls automatically
-
-✔ Highlights the exact clause
-
-✔ Displays the matching policy side-by-side
-
----
-
-## 📊 Executive Dashboard
-
-Monitor
-
-- Compliance Score
-- High-Risk Contracts
-- AI Findings
-- Uploaded Policies
-- Recent Analyses
-- Department Statistics
-- Risk Distribution
-
----
-
-## 📑 Executive PDF Reports
-
-Generate professional reports containing
-
-- Executive Summary
-- Compliance Score
-- Risk Analysis
-- Clause-by-Clause Review
-- AI Recommendations
-- Audit Trail
-
----
-
-## 🔐 Enterprise Authentication
-
-- JWT Authentication
-- Password Hashing
-- Role-Based Access Control
-
-Supported Roles
-
-- System Admin
-- Compliance Officer
-- Legal Reviewer
-- Auditor
-- Viewer
-
----
-
-## 🏢 Administration
-
-Manage
-
-- Users
-- Departments
-- Contracts
-- Policies
-- Reports
-- Audit Logs
-- AI Usage
-
----
-
-# 🏗 System Architecture
-
-```
-                  React Frontend
-                         │
-                         ▼
-                 Flask REST API
-                         │
-        ┌────────────────┼────────────────┐
-        ▼                ▼                ▼
- PostgreSQL          Redis Cache      Qdrant
-        │                                 │
-        └──────────────┬──────────────────┘
-                       ▼
-               OpenAI + LlamaIndex
-                       │
-                       ▼
-             AI Compliance Analysis
-                       │
-                       ▼
-          Executive Reports & Dashboard
+### 1. Configuration
+Create a `.env` file based on the provided template:
+```env
+OPENAI_API_KEY=your_gemini_or_openai_key
+DATABASE_URL=postgresql://postgres:postgres@db:5432/contract_compliance
+QDRANT_HOST=qdrant
+REDIS_URL=redis://redis:6379/0
 ```
 
----
-
-# ⚙️ Technology Stack
-
-## Frontend
-
-- React (JSX)
-- Vite
-- Tailwind CSS
-- React Router
-- Axios
-
-## Backend
-
-- Flask
-- SQLAlchemy
-- Flask-JWT-Extended
-- Flask-Migrate
-
-## AI
-
-- OpenAI API
-- LlamaIndex
-- Qdrant
-
-## Database
-
-- PostgreSQL
-
-## Cache
-
-- Redis
-
-## Document Processing
-
-- PyMuPDF
-- python-docx
-
-## Infrastructure
-
-- Docker
-- Docker Compose
-- Nginx
-- AWS EC2
-- AWS S3
-- Linux
-
----
-
-# 📂 Project Structure
-
-```
-backend/
-│
-├── app/
-│   ├── models/
-│   ├── routes/
-│   ├── services/
-│   ├── rag/
-│   ├── auth/
-│   ├── utils/
-│   └── config/
-│
-├── migrations/
-├── seed.py
-└── run.py
-
-frontend/
-│
-├── src/
-│   ├── components/
-│   ├── pages/
-│   ├── hooks/
-│   ├── context/
-│   ├── services/
-│   └── App.jsx
-
-nginx/
-docker-compose.yml
-README.md
-```
-
----
-
-# 🚀 Getting Started
-
-## Clone Repository
-
+### 2. Docker Deployment
+The system is fully containerized with healthchecks and non-root users:
 ```bash
-git clone https://github.com/yourusername/enterprise-ai-compliance-auditor.git
-
-cd enterprise-ai-compliance-auditor
+docker compose up -d --build
 ```
 
----
-
-## Configure Environment
-
+### 3. Verify Health
+Ensure all subsystems (DB, Redis, Qdrant, AI) are operational:
 ```bash
-cp .env.example .env
+curl http://localhost:5000/api/ready
 ```
 
-Configure
-
-```
-OPENAI_API_KEY=
-
-POSTGRES_DB=
-
-POSTGRES_USER=
-
-POSTGRES_PASSWORD=
-
-JWT_SECRET_KEY=
-```
-
----
-
-## Start Application
-
+## 🧪 Testing
+The backend features a comprehensive Pytest suite mocking dependencies to validate the RAG pipeline and Auth mechanisms.
 ```bash
-docker compose up --build
+docker compose exec backend pytest
 ```
+
+## 🔐 License & Security
+This project follows strictly enforced OWASP standards, preventing path traversals, enforcing CORS, and validating maximum content payload sizes.
 
 ---
-
-Application URLs
-
-Frontend
-
-```
-http://localhost
-```
-
-Backend
-
-```
-http://localhost:5000
-```
-
-Swagger
-
-```
-http://localhost:5000/swagger
-```
-
----
-
-# 🔑 Demo Credentials
-
-| Role | Email | Password |
-|-------|-------|----------|
-| Admin | admin@company.com | admin123 |
-| Compliance Officer | officer@company.com | officer123 |
-| Legal Reviewer | legal@company.com | legal123 |
-| Auditor | auditor@company.com | auditor123 |
-| Viewer | viewer@company.com | viewer123 |
-
----
-
-# 🔄 AI Workflow
-
-```
-Upload Contract
-        │
-        ▼
-Extract Text
-        │
-        ▼
-Chunk Document
-        │
-        ▼
-Generate Embeddings
-        │
-        ▼
-Store in Qdrant
-        │
-        ▼
-Retrieve Policies
-        │
-        ▼
-LLM Analysis
-        │
-        ▼
-Compliance Report
-        │
-        ▼
-Citation Highlighting
-```
-
----
-
-# 📈 Future Enhancements
-
-- Multi-Tenant SaaS Architecture
-- SSO (Google, Microsoft Entra ID, Okta)
-- AI Chat Copilot
-- Version Comparison
-- Policy Impact Analysis
-- Background Job Processing
-- Prometheus & Grafana Monitoring
-- Kubernetes Deployment
-- Multi-Model LLM Support
-
----
-
-# 🧪 Testing
-
-```bash
-docker compose up
-
-Upload Policy
-
-Upload Contract
-
-Run AI Analysis
-
-View Findings
-
-Generate Report
-```
-
----
-
-# 📸 Screenshots
-
-> Add screenshots here
-
-- Login
-- Dashboard
-- Contract Upload
-- Policy Library
-- AI Findings
-- Citation Viewer
-- Reports
-
----
-
-# 📄 License
-
-MIT License
-
----
-
-# 👨‍💻 Author
-
-**Manojkrishna M**
-
-B.Tech Artificial Intelligence & Data Science
-
-Enterprise AI • Cloud • Flask • React • AWS • Docker
+**Maintained by:** Enterprise Forward Deployed Engineering Team

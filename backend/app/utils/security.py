@@ -3,6 +3,7 @@ from flask import request, jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from app.database import db
 from app.models.audit import AuditLog
+from app.utils.logger import rag_logger
 
 def role_required(*roles):
     """
@@ -37,6 +38,7 @@ def log_audit(user_id, action, details):
         db.session.add(log)
         db.session.commit()
     except Exception as e:
-        print(f"Error logging audit: {e}")
-        # Rollback db session if it failed inside request context
-        db.session.rollback()
+        rag_logger.error(f"Error logging audit: {e}", exc_info=True)
+        # We do not call db.session.rollback() here because it would destroy
+        # the entire parent transaction (e.g., contract upload or user registration)
+        # that hasn't been committed yet.

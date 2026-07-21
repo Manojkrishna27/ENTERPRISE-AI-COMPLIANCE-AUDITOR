@@ -1,0 +1,40 @@
+@startuml authentication-flow
+skinparam monochrome true
+skinparam shadowing false
+
+title JWT Authentication & Redis Blocklist Flow
+
+actor Client
+participant "Auth Router" as API
+database PostgreSQL
+database Redis
+
+== Login ==
+Client -> API : POST /api/auth/login (email, password)
+API -> PostgreSQL : fetch User by email
+PostgreSQL --> API : User record + password_hash
+API -> API : verify password
+API -> API : generate JWT Access Token
+API --> Client : 200 OK + JWT
+
+== Authenticated Request ==
+Client -> API : GET /api/contracts (Header: Bearer JWT)
+API -> Redis : is_token_blocklisted(jti)
+alt Token is blocklisted
+    Redis --> API : true
+    API --> Client : 401 Unauthorized (Token Revoked)
+else Token is valid
+    Redis --> API : false
+    API -> API : extract user_id & role
+    API -> PostgreSQL : execute requested action
+    PostgreSQL --> API : Data
+    API --> Client : 200 OK
+end
+
+== Logout ==
+Client -> API : POST /api/auth/logout (Header: Bearer JWT)
+API -> Redis : add_to_blocklist(jti, expire=JWT_EXP)
+Redis --> API : OK
+API --> Client : 200 OK (Logged out)
+
+@enduml

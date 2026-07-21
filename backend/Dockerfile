@@ -15,10 +15,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
 EXPOSE 5000
 
 ENV FLASK_APP=wsgi.py
-ENV FLASK_ENV=development
+ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "wsgi.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "wsgi:app"]

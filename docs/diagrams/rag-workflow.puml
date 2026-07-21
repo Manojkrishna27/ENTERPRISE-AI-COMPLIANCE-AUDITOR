@@ -1,0 +1,48 @@
+@startuml rag-workflow
+skinparam monochrome true
+skinparam shadowing false
+
+title Enterprise RAG Pipeline Workflow
+
+actor "Legal Reviewer" as User
+participant "Flask Backend" as Backend
+participant "PyMuPDF Parser" as Parser
+participant "LlamaIndex Splitter" as LlamaIndex
+participant "Embedding Provider" as Embedder
+participant "Qdrant Vector DB" as Qdrant
+participant "LLM Provider" as LLM
+
+group Document Ingestion
+    User -> Backend : POST /contracts (PDF)
+    Backend -> Parser : parse_document(file)
+    Parser -> LlamaIndex : semantic_chunking(text)
+    LlamaIndex --> Parser : sentence_chunks
+    Parser --> Backend : parsed_chunks
+    
+    loop For each chunk
+        Backend -> Embedder : get_embedding(chunk_text)
+        Embedder --> Backend : vector [768-dim]
+    end
+    
+    Backend -> Qdrant : upsert(vectors, payloads)
+    Qdrant --> Backend : 200 OK
+    Backend --> User : 201 Created (Success)
+end
+
+group Copilot Chat (Retrieval-Augmented Generation)
+    User -> Backend : POST /contracts/:id/copilot (query)
+    Backend -> Embedder : get_embedding(query)
+    Embedder --> Backend : vector [768-dim]
+    
+    Backend -> Qdrant : search_contract_chunks(vector, filter=department_id)
+    Qdrant --> Backend : Top-K Relevant Contract Chunks
+    
+    Backend -> Qdrant : search_policy_chunks(vector, filter=department_id)
+    Qdrant --> Backend : Top-K Relevant Policy Chunks
+    
+    Backend -> LLM : generateContent(system_prompt, Context, Query)
+    LLM --> Backend : AI Answer (with Citations & Telemetry)
+    Backend --> User : 200 OK (AI Answer)
+end
+
+@enduml

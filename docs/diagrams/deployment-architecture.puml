@@ -1,0 +1,48 @@
+@startuml deployment-architecture
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam node {
+    BackgroundColor white
+    BorderColor black
+}
+
+title Docker Compose Deployment Architecture
+
+node "Docker Host (EC2 / Local)" {
+    
+    node "Public Network" {
+        [Nginx Gateway] as nginx
+    }
+    
+    node "Internal Application Network" {
+        [React Frontend Container] as frontend
+        [Flask Gunicorn Backend Container] as backend
+    }
+    
+    node "Internal Data Network" {
+        database "Postgres Container" as db
+        database "Redis Container" as redis
+        database "Qdrant Container" as qdrant
+    }
+    
+    folder "Docker Volumes" {
+        [postgres_data]
+        [qdrant_data]
+        [redis_data]
+        [backend_uploads]
+    }
+    
+    nginx -down-> frontend : "Route /"
+    nginx -down-> backend : "Route /api/*"
+    
+    backend -down-> db : "TCP 5432"
+    backend -down-> redis : "TCP 6379"
+    backend -down-> qdrant : "TCP 6333"
+    
+    db -right-> postgres_data : "Persist DB"
+    qdrant -right-> qdrant_data : "Persist Vectors"
+    redis -right-> redis_data : "Persist Cache"
+    backend -right-> backend_uploads : "Persist PDFs"
+}
+@enduml

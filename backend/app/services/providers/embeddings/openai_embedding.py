@@ -1,0 +1,37 @@
+import time
+from typing import Tuple, List
+from openai import OpenAI
+from app.services.providers.base.embedding import BaseEmbeddingProvider
+
+class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
+    def __init__(self, api_key: str):
+        super().__init__(api_key)
+        self.client = OpenAI(api_key=self.api_key)
+        
+    @property
+    def provider_name(self) -> str:
+        return "openai"
+        
+    @property
+    def model_name(self) -> str:
+        return "text-embedding-3-small"
+        
+    @property
+    def dimension(self) -> int:
+        return 1536
+
+    def get_embedding(self, text: str) -> Tuple[List[float], float]:
+        if not text or not text.strip():
+            raise ValueError("Cannot generate embedding for empty text")
+            
+        start_time = time.time()
+        try:
+            response = self.client.embeddings.create(
+                input=[text],
+                model=self.model_name
+            )
+            embedding = response.data[0].embedding
+            latency = time.time() - start_time
+            return embedding, latency
+        except Exception as e:
+            raise Exception(f"Failed to generate OpenAI embedding: {str(e)}")

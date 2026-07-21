@@ -35,7 +35,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     full_name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(30), nullable=False, default='Viewer')  # Admin, Compliance Officer, Legal Reviewer, Auditor, Viewer
-    department_id = db.Column(db.String(36), db.ForeignKey('departments.id'), nullable=True)
+    department_id = db.Column(db.String(36), db.ForeignKey('departments.id', ondelete='SET NULL'), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
     verification_token = db.Column(db.String(100), nullable=True)

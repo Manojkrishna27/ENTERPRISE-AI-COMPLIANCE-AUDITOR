@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.database import db
 from app.models.contract import ContractVersion, ContractChunk, Contract
@@ -6,7 +6,7 @@ from app.models.policy import Policy, PolicyChunk
 from app.models.audit import AIFinding
 from app.models.notification import Notification
 from app.services.qdrant_service import qdrant_service
-from app.services.openai_service import openai_service
+from app.services.rag_service import rag_service
 from app.utils.security import role_required, log_audit
 
 analysis_bp = Blueprint('analysis', __name__)
@@ -39,53 +39,50 @@ def run_analysis(contract_id, ver_id):
     high_risk_detected = False
     
     try:
-        # Loop through chunks and search Qdrant for policy matches
-        for chunk in chunks:
-            # Query Qdrant for relevant policies
-            matching_policies = qdrant_service.search_policy_chunks(chunk.chunk_text, limit=2)
+        # Instead of looping all chunks, we use RAG to find the most risky clauses
+        compliance_query = "Compliance risks, GDPR, security requirements, liability limits, missing clauses, financial risks, privacy"
+        
+        matching_contract_chunks = qdrant_service.search_contract_chunks(version.id, compliance_query, limit=15)
+        matching_policies = qdrant_service.search_policy_chunks(compliance_query, limit=10, department_id=contract.department_id)
+        
+        # Run LLM structured auditing
+        analysis_result = rag_service.analyze_contract_compliance(
+            contract_name=contract.name,
+            contract_chunks=matching_contract_chunks,
+            policy_chunks=matching_policies
+        )
+        
+        # Parse new JSON format
+        raw_findings = analysis_result.get("findings", [])
+        
+        # Save findings
+        for f in raw_findings:
+            contract_citation = f.get("contract_citation", {})
+            policy_citation = f.get("policy_citation", {})
             
-            # Run LLM structured auditing
-            raw_findings = openai_service.analyze_clause_against_policy(
-                contract_chunk_text=chunk.chunk_text,
-                contract_page=chunk.page_number,
-                contract_para=chunk.paragraph_number,
-                policy_chunks=matching_policies
+            finding = AIFinding(
+                version_id=version.id,
+                category=f.get('category', 'Compliance Issue'),
+                risk_level=f.get('severity', 'Low'),
+                title=f.get('title', 'Discrepancy'),
+                explanation=f.get('description', ''),
+                business_impact=f.get('business_impact', ''),
+                recommendation=f.get('recommendation', ''),
+                confidence_score=f.get('confidence', 1.0),
+                contract_page_number=contract_citation.get("page", 1),
+                contract_paragraph_number=contract_citation.get("paragraph", 1),
+                policy_page_number=policy_citation.get("page"),
+                policy_paragraph_number=policy_citation.get("paragraph"),
+                matching_clause_text=f.get('matching_clause_text', ''),
+                matching_policy_text=f.get('matching_policy_text', '')
             )
             
-            # Save findings returned from OpenAI
-            for f in raw_findings:
-                # Resolve policy ID if matched
-                p_id = f.get('policy_id')
-                if p_id:
-                    # Double check policy exists in SQL
-                    sql_policy = Policy.query.get(p_id)
-                    if not sql_policy:
-                        p_id = None
+            if f.get('severity', '').upper() == 'HIGH':
+                high_risk_detected = True
                 
-                finding = AIFinding(
-                    version_id=version.id,
-                    category=f.get('category', 'Custom'),
-                    risk_level=f.get('risk_level', 'Low'),
-                    title=f.get('title', 'Compliance Discrepancy'),
-                    explanation=f.get('explanation', ''),
-                    business_impact=f.get('business_impact', ''),
-                    recommendation=f.get('recommendation', ''),
-                    confidence_score=f.get('confidence_score', 1.0),
-                    contract_page_number=chunk.page_number,
-                    contract_paragraph_number=chunk.paragraph_number,
-                    policy_id=p_id,
-                    policy_page_number=f.get('policy_page_number'),
-                    policy_paragraph_number=f.get('policy_paragraph_number'),
-                    matching_clause_text=f.get('matching_clause_text') or chunk.chunk_text[:300],
-                    matching_policy_text=f.get('matching_policy_text')
-                )
-                
-                if f.get('risk_level') == 'High':
-                    high_risk_detected = True
-                    
-                db.session.add(finding)
-                findings_count += 1
-                
+            db.session.add(finding)
+            findings_count += 1
+            
         # Update statuses
         version.status = 'Analyzed'
         contract.status = 'Pending Review'
@@ -108,6 +105,7 @@ def run_analysis(contract_id, ver_id):
         return jsonify({
             "msg": "Analysis completed successfully",
             "findings_count": findings_count,
+            "compliance_score": analysis_result.get("compliance_score", 100),
             "status": "Analyzed",
             "high_risk_detected": high_risk_detected
         }), 200
@@ -130,11 +128,45 @@ def get_findings(contract_id, ver_id):
 @analysis_bp.route('/contracts/<contract_id>/version/<ver_id>/copilot', methods=['POST'])
 @jwt_required()
 def copilot_chat(contract_id, ver_id):
-    data = request.get_json() or {}
-    query = data.get('query')
+    """
+    RAG Copilot Chat
+    ---
+    tags:
+      - Copilot
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: contract_id
+        required: true
+        type: string
+      - in: path
+        name: ver_id
+        required: true
+        type: string
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            question:
+              type: string
+    responses:
+      200:
+        description: AI generated response
+    """
+    limiter = current_app.extensions['limiter']
+    limiter.limit("30 per minute")(lambda: None)()
     
-    if not query:
-        return jsonify({"msg": "Query is required"}), 400
+    data = request.get_json() or {}
+    question = data.get('question')
+    
+    if not question:
+        return jsonify({"msg": "Question is required"}), 400
+        
+    print(f"\n--- RAG Copilot Request ---")
+    print(f"Question: {question}")
         
     # Fetch contract context
     contract = Contract.query.get(contract_id)
@@ -142,20 +174,52 @@ def copilot_chat(contract_id, ver_id):
         return jsonify({"msg": "Contract not found"}), 404
         
     chunks = ContractChunk.query.filter_by(version_id=ver_id).order_by(ContractChunk.chunk_position.asc()).all()
-    contract_chunks_list = [{"page_number": c.page_number, "paragraph_number": c.paragraph_number, "text": c.chunk_text} for c in chunks]
+    if not chunks:
+        return jsonify({"msg": "No content found for this contract version"}), 400
+        
+    # Fallback on-the-fly indexing for legacy unindexed contracts
+    unindexed_chunks = [c for c in chunks if not c.qdrant_id]
+    if unindexed_chunks:
+        print(f"Found {len(unindexed_chunks)} unindexed contract chunks. Indexing on-the-fly...")
+        qdrant_service.index_contract_chunks(ver_id, unindexed_chunks)
+        db.session.commit()
     
-    # Retrieve matching policy context using semantic query
-    matching_policies = qdrant_service.search_policy_chunks(query, limit=3)
-    
-    # Execute AI prompt completion
-    response_text = openai_service.copilot_answer(
-        query=query,
-        contract_name=contract.name,
-        contract_chunks=contract_chunks_list,
-        policy_chunks=matching_policies
-    )
-    
-    return jsonify({
-        "query": query,
-        "answer": response_text
-    }), 200
+    try:
+        # Retrieve matching contract and policy context using semantic query
+        matching_contract_chunks = qdrant_service.search_contract_chunks(ver_id, question, limit=5)
+        matching_policies = qdrant_service.search_policy_chunks(question, limit=5, department_id=contract.department_id)
+        
+        # Execute AI prompt completion
+        response_data = rag_service.copilot_answer(
+            query=question,
+            contract_name=contract.name,
+            contract_chunks=matching_contract_chunks,
+            policy_chunks=matching_policies,
+            retrieval_metrics={
+                "retrieved_contract_chunks": len(matching_contract_chunks),
+                "retrieved_policy_chunks": len(matching_policies)
+            }
+        )
+        
+        return jsonify({
+            "question": question,
+            "answer": response_data["content"],
+            "metrics": {
+                "prompt_tokens": response_data.get("prompt_tokens"),
+                "completion_tokens": response_data.get("completion_tokens"),
+                "latency_seconds": round(response_data.get("latency", 0), 2),
+                "model_used": response_data.get("model"),
+                "retrieved_contract": response_data.get("retrieved_contract_chunks"),
+                "retrieved_policy": response_data.get("retrieved_policy_chunks")
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"RAG Failure: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "status": "error",
+            "message": "RAG retrieval or LLM generation failed.",
+            "details": str(e)
+        }), 500

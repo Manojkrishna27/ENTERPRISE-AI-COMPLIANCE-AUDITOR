@@ -107,7 +107,8 @@ const ContractDetail = () => {
       const updatedVer = res.data.versions.find((v) => v.id === selectedVersion.id)
       setSelectedVersion(updatedVer)
     } catch (err) {
-      alert('Analysis failed: ' + (err.response?.data?.msg || err.message))
+      const backendErr = err.response?.data?.error;
+      alert('Analysis failed: ' + (backendErr ? backendErr : (err.response?.data?.msg || err.message)))
     } finally {
       setAnalyzing(false)
     }
@@ -195,12 +196,13 @@ const ContractDetail = () => {
 
     try {
       const res = await api.post(`/analysis/contracts/${id}/version/${selectedVersion.id}/copilot`, {
-        query: chatQuery
+        question: chatQuery
       })
       const botMsg = { role: 'assistant', text: res.data.answer }
       setChatMessages((prev) => [...prev, botMsg])
     } catch (err) {
-      const errMsg = { role: 'assistant', text: "Error fetching answer from OpenAI. Verify key configurations." }
+      const errorDetail = err.response?.data?.details || err.message || "Unknown error";
+      const errMsg = { role: 'assistant', text: `Error fetching answer from AI backend: ${errorDetail}` }
       setChatMessages((prev) => [...prev, errMsg])
     } finally {
       setChatLoading(false)
