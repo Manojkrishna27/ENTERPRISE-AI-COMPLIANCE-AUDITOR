@@ -27,7 +27,7 @@ The system identifies high-risk liabilities, missing mandatory clauses, and comp
 From document upload to AI-powered compliance insights — the full pipeline, in one diagram:
 
 <div align="center">
-  <img src="./docs/diagrams/rag-workflow.png" alt="End-to-End RAG Workflow" width="100%">
+  <img src="./screenshots/rag-workflow.png" alt="End-to-End RAG Workflow" width="100%">
 </div>
 
 <p align="center"><i>8-stage pipeline: Document Ingestion → Text Chunking → Embedding Generation → Vector Storage → User Query → Retrieval → AI Generation → Response & Citations, backed by dedicated Auth, Database, Cache, Storage, Observability, and Security layers.</i></p>
