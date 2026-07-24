@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./screenshots/Logo.png" alt="Enterprise AI Compliance Auditor Logo" width="550">
+  <img src="./screenshots/Logo.png" alt="Enterprise AI Compliance Auditor Logo" width="500">
 
   <h1>Enterprise AI Compliance & Contract Auditor</h1>
   <p><i>A production-grade, multi-tenant AI system for automated legal contract ingestion, policy comparison, and risk analysis using advanced RAG.</i></p>
@@ -14,12 +14,12 @@
 
   <br /><br />
 
-  <a href="#-key-features">Features</a> •
-  <a href="#-architecture--tech-stack">Architecture</a> •
-  <a href="#-getting-started">Getting Started</a> •
-  <a href="#-testing--quality-assurance">Testing</a> •
-  <a href="#-security--compliance">Security</a> •
-  <a href="#-detailed-documentation">Docs</a>
+  <a href="#key-features">Features</a> •
+  <a href="#architecture--tech-stack">Architecture</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#testing--quality-assurance">Testing</a> •
+  <a href="#security--compliance">Security</a> •
+  <a href="#detailed-documentation">Docs</a>
 </div>
 
 <br />
@@ -60,8 +60,8 @@ From document upload to AI-powered compliance insight — the full pipeline, in 
 
 ## ✨ Key Features
 
-| | |
-|---|---|
+| Feature | Implementation & Capabilities |
+| :--- | :--- |
 | 🧠 **Enterprise RAG Pipeline** | High-fidelity semantic chunking using PyMuPDF and LlamaIndex. |
 | ⚡ **Dynamic AI Adapters** | Provider-agnostic architecture that dynamically supports Google Gemini (`gemini-1.5-flash`, `gemini-embedding-2`) and OpenAI. |
 | 🎯 **Matryoshka Representation Vectors** | 768-dimensional Qdrant embeddings tuned for precise semantic spatial relations during retrieval. |
