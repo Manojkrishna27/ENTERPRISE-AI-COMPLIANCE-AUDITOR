@@ -20,6 +20,20 @@ The **Enterprise AI Compliance & Contract Auditor** is a full-stack, enterprise-
 
 The system identifies high-risk liabilities, missing mandatory clauses, and compliance violations, saving thousands of hours of manual legal review while eliminating human error. Built with a focus on **security**, **multi-tenancy**, and **scalability**, it is hardened for Fortune 500 production environments.
 
+---
+
+## 🔄 End-to-End RAG Workflow
+
+From document upload to AI-powered compliance insights — the full pipeline, in one diagram:
+
+<div align="center">
+  <img src="./docs/diagrams/rag-workflow.png" alt="End-to-End RAG Workflow" width="100%">
+</div>
+
+<p align="center"><i>8-stage pipeline: Document Ingestion → Text Chunking → Embedding Generation → Vector Storage → User Query → Retrieval → AI Generation → Response & Citations, backed by dedicated Auth, Database, Cache, Storage, Observability, and Security layers.</i></p>
+
+---
+
 ## 📸 Screenshots
 
 | Dashboard & Overview | Contract Upload & Viewer |
@@ -82,6 +96,7 @@ The platform utilizes a containerized microservices architecture to ensure isola
 │   ├── Dockerfile            # Frontend container definition
 │   └── package.json          # Node dependencies
 ├── docs/                     # Comprehensive Markdown and PlantUML documentation
+│   └── diagrams/             # Architecture & workflow diagrams (rag-workflow.png, etc.)
 ├── nginx/                    # Nginx reverse proxy configuration
 ├── docker-compose.yml        # Orchestration for the entire stack
 └── .env.example              # Environment variables template
