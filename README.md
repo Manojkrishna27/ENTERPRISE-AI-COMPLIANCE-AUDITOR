@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./screenshots/Logo.png" alt="Enterprise AI Compliance Auditor Logo" width="180">
+  <img src="./screenshots/Logo.png" alt="Enterprise AI Compliance Auditor Logo" width="550">
   <h1>Enterprise AI Compliance & Contract Auditor</h1>
   <p><i>A production-grade, multi-tenant AI system for automated legal contract ingestion, policy comparison, and risk analysis using advanced RAG.</i></p>
 
