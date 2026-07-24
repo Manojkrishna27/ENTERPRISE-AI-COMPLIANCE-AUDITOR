@@ -4,7 +4,8 @@
   <p><i>A production-grade, multi-tenant AI system for automated legal contract ingestion, policy comparison, and risk analysis using advanced RAG.</i></p>
 
   <!-- Badges -->
-  <a href="https://github.com/yourusername/your-repo/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status"></a>
+  <a href="https://github.com/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR
+/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python" alt="Python Version"></a>
   <a href="https://react.dev"><img src="https://img.shields.io/badge/React-18.2-blue?style=flat-square&logo=react" alt="React"></a>
   <a href="https://flask.palletsprojects.com/"><img src="https://img.shields.io/badge/Flask-3.0-lightgrey?style=flat-square&logo=flask" alt="Flask"></a>
