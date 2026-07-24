@@ -4,7 +4,7 @@
   <h1>Enterprise AI Compliance & Contract Auditor</h1>
   <p><i>A production-grade, multi-tenant AI system for automated legal contract ingestion, policy comparison, and risk analysis using advanced RAG.</i></p>
 
-  <!-- Badges -->
+  <!-- Status badges -->
   <a href="https://github.com/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python" alt="Python Version"></a>
   <a href="https://react.dev"><img src="https://img.shields.io/badge/React-18.2-blue?style=flat-square&logo=react" alt="React"></a>
@@ -12,14 +12,25 @@
   <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-Enabled-blue?style=flat-square&logo=docker" alt="Docker"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT"></a>
 
+  <br />
+
+  <!-- Community / repo-stat badges — auto-populate once the repo is public/live -->
+  <a href="https://github.com/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR/stargazers"><img src="https://img.shields.io/github/stars/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR?style=flat-square" alt="Stars"></a>
+  <a href="https://github.com/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR/network/members"><img src="https://img.shields.io/github/forks/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR?style=flat-square" alt="Forks"></a>
+  <a href="https://github.com/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR/issues"><img src="https://img.shields.io/github/issues/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR?style=flat-square" alt="Issues"></a>
+  <a href="https://github.com/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR/commits/main"><img src="https://img.shields.io/github/last-commit/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR?style=flat-square" alt="Last Commit"></a>
+  <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome"></a>
+
   <br /><br />
 
-  <a href="#-key-features">Features</a> •
-  <a href="#-architecture--tech-stack">Architecture</a> •
-  <a href="#-getting-started">Getting Started</a> •
-  <a href="#-testing--quality-assurance">Testing</a> •
-  <a href="#-security--compliance">Security</a> •
-  <a href="#-detailed-documentation">Docs</a>
+  <a href="#why-this-exists">Why This Exists</a> •
+  <a href="#key-features">Features</a> •
+  <a href="#architecture--tech-stack">Architecture</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#testing--quality-assurance">Testing</a> •
+  <a href="#security--compliance">Security</a> •
+  <a href="#roadmap">Roadmap</a> •
+  <a href="#faq">FAQ</a>
 </div>
 
 <br />
@@ -31,6 +42,19 @@
 It ingests legal contracts (PDF, DOCX), semantically parses them, and uses **Retrieval-Augmented Generation (RAG)** to compare them against internal corporate policy. The system flags high-risk liabilities, missing mandatory clauses, and compliance gaps — cutting manual review time from hours to minutes while removing human error from the process.
 
 Built with **security**, **multi-tenancy**, and **scalability** as first-class concerns, the platform is designed to hold up in Fortune 500 production environments, not just demos.
+
+---
+
+## 🎯 Why This Exists
+
+Manual contract review doesn't scale. Legal teams routinely spend hours per contract cross-referencing clauses against internal policy, and the cost of missing a single non-standard liability or indemnification clause can run into the millions.
+
+This project exists to make that review:
+
+- **Faster** — a contract that takes a paralegal 2–3 hours to review can be triaged in minutes.
+- **Consistent** — the same policy checklist is applied every time, with no reviewer fatigue or drift.
+- **Auditable** — every flagged risk is backed by a retrieved citation from the source contract and the policy it violates, so legal can verify the "why," not just trust a black box.
+- **Safe to scale across departments** — multi-tenant isolation means Legal, Procurement, and HR can all use the same platform without seeing each other's documents.
 
 ---
 
@@ -187,6 +211,34 @@ This project follows strictly enforced OWASP standards:
 
 ---
 
+## 🗺 Roadmap
+
+- [ ] Redline generation — auto-suggest contract edits that resolve flagged risks
+- [ ] Clause library — searchable repository of approved/standard clause language
+- [ ] SSO (SAML / OIDC) for enterprise identity providers
+- [ ] Batch contract comparison across an entire vendor portfolio
+- [ ] Fine-tuned, self-hosted embedding model option for air-gapped deployments
+
+Have a feature request? Open an issue with the `enhancement` label.
+
+---
+
+## ❓ FAQ
+
+**Does this replace a lawyer?**
+No. It's a triage and acceleration tool — it surfaces risks and citations for a human reviewer to confirm; it doesn't provide legal advice or sign off on contracts.
+
+**Can I use my own LLM provider?**
+Yes. The AI adapter layer is provider-agnostic; Gemini and OpenAI are supported out of the box, and adding another provider means implementing the same adapter interface.
+
+**Is my data used to train any models?**
+No. Contracts and policies stay within your deployment; the AI providers are called per-request and the platform does not fine-tune on customer data.
+
+**Can two departments' documents ever mix in search results?**
+No — retrieval is scoped by `department_id` at the vector-store level, so a query from one tenant can never surface another tenant's chunks.
+
+---
+
 ## 📚 Detailed Documentation
 
 Dive deeper into the system's architecture and capabilities in the `docs/` directory:
@@ -201,11 +253,11 @@ Dive deeper into the system's architecture and capabilities in the `docs/` direc
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read `CONTRIBUTING.md` for our code of conduct and the process for submitting pull requests.
+Contributions are welcome! Please read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the code of conduct and pull request process. Good first issues are tagged `good-first-issue`.
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the `LICENSE` file for details.
+This project is licensed under the MIT License — see the [`LICENSE`](./LICENSE) file for details.
 
 ---
 
