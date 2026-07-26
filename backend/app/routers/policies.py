@@ -1,80 +1,81 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+import os
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
+from sqlalchemy.orm import Session
 from werkzeug.utils import secure_filename
-from app.database import db
+
+from app.core.database import get_db
+from app.core.dependencies import get_current_user, role_required
 from app.models.policy import Policy, PolicyChunk
+from app.models.user import User
 from app.services.s3_service import storage_service
 from app.services.document_parser import DocumentParser
 from app.services.qdrant_service import qdrant_service
-from app.utils.security import role_required, log_audit
+from app.utils.security import log_audit
 
-policies_bp = Blueprint('policies', __name__)
+router = APIRouter(prefix="/api/policies", tags=["Policies"])
 
 ALLOWED_EXTENSIONS = {'pdf', 'docx'}
 
-def allowed_file(filename):
+def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@policies_bp.route('', methods=['GET'])
-@jwt_required()
-def list_policies():
-    category = request.args.get('category')
-    query = Policy.query
+@router.get("", summary="List all policies", description="Fetch list of compliance policies filtered by category")
+def list_policies(
+    category: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Policy)
     if category:
-        query = query.filter_by(category=category)
+        query = query.filter(Policy.category == category)
     policies = query.order_by(Policy.created_at.desc()).all()
-    return jsonify([p.to_dict() for p in policies]), 200
+    return [p.to_dict() for p in policies]
 
 
-@policies_bp.route('', methods=['POST'])
-@jwt_required()
-@role_required('Admin', 'Compliance Officer')
-def upload_policy():
-    user_id = get_jwt_identity()
-
-    if 'file' not in request.files:
-        return jsonify({"msg": "No file part in request"}), 400
-        
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"msg": "No file selected"}), 400
-
-    name = request.form.get('name')
-    description = request.form.get('description', '')
-    category = request.form.get('category', 'Custom') # GDPR, ISO27001, SOC2, Internal, Vendor, Custom
+@router.post("", status_code=status.HTTP_201_CREATED, summary="Upload a new policy", description="Upload policy document and index chunks into vector database")
+async def upload_policy(
+    request: Request,
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    description: Optional[str] = Form(""),
+    category: Optional[str] = Form("Custom"),
+    current_user: User = Depends(role_required('Admin', 'Compliance Officer')),
+    db: Session = Depends(get_db)
+):
+    if not file or not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file selected")
 
     if not name:
-        return jsonify({"msg": "Policy name is required"}), 400
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Policy name is required")
 
     if not allowed_file(file.filename):
-        return jsonify({"msg": "Unsupported file type. Only PDF and DOCX are allowed."}), 400
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type. Only PDF and DOCX are allowed.")
 
     file_ext = file.filename.rsplit('.', 1)[1].lower()
-    
-    # Save Policy header
+    filename = secure_filename(file.filename)
+
     policy = Policy(
         name=name,
-        description=description,
-        category=category,
+        description=description or "",
+        category=category or "Custom",
         s3_key="",
         file_type=file_ext.upper(),
         is_active=True
     )
-    db.session.add(policy)
-    db.session.flush() # Generate ID
-    
-    filename = secure_filename(file.filename)
+    db.add(policy)
+    db.flush()
+
     s3_key = f"policies/{policy.id}_{filename}"
     policy.s3_key = s3_key
-    
+
     try:
-        # Save file
-        storage_service.upload_file(file, s3_key)
-        
-        # Parse text chunks
+        contents = await file.read()
+        storage_service.upload_file(contents, s3_key)
+
         local_path = storage_service.get_file_path(s3_key)
         parsed_chunks = DocumentParser.parse_document(local_path, file_ext)
-        
+
         db_chunks = []
         for c in parsed_chunks:
             chunk = PolicyChunk(
@@ -85,63 +86,54 @@ def upload_policy():
                 chunk_position=c['chunk_position']
             )
             db_chunks.append(chunk)
-            db.session.add(chunk)
-            
-        db.session.flush() # Assign IDs to DB chunks
-        
-        # Index chunks in Qdrant Vector Store
+            db.add(chunk)
+
+        db.flush()
+
+        # Index policy chunks in Qdrant Vector Store
         qdrant_service.index_policy_chunks(policy.id, db_chunks)
-        
-        db.session.commit()
-        log_audit(user_id, "POLICY_UPLOAD", f"Uploaded and indexed policy: {name}")
-        
-        return jsonify({
+
+        db.commit()
+
+        client_ip = request.client.host if request.client else "System"
+        log_audit(current_user.id, "POLICY_UPLOAD", f"Uploaded and indexed policy: {name}", ip_address=client_ip)
+
+        return {
             "msg": "Policy uploaded and indexed successfully",
             "policy": policy.to_dict(),
             "chunks_count": len(db_chunks)
-        }), 201
-        
+        }
     except Exception as e:
         policy_id = policy.id if policy else None
-        db.session.rollback()
-        # Clean up Qdrant index if failed
+        db.rollback()
         if policy_id:
             try:
                 qdrant_service.delete_policy_chunks(policy_id)
             except Exception as inner_e:
                 print(f"Error deleting qdrant chunks during rollback: {inner_e}")
-                
-        print(f"Error processing policy: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"msg": "Failed to upload and index policy", "error": str(e)}), 500
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to upload and index policy: {str(e)}")
 
 
-@policies_bp.route('/<id>', methods=['DELETE'])
-@jwt_required()
-@role_required('Admin', 'Compliance Officer')
-def delete_policy(id):
-    policy = Policy.query.get(id)
+@router.delete("/{id}", summary="Delete policy", description="Delete policy document, chunks, and vector index")
+def delete_policy(
+    id: str,
+    request: Request,
+    current_user: User = Depends(role_required('Admin', 'Compliance Officer')),
+    db: Session = Depends(get_db)
+):
+    policy = db.query(Policy).filter(Policy.id == id).first()
     if not policy:
-        return jsonify({"msg": "Policy not found"}), 404
-        
-    user_id = get_jwt_identity()
-    
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Policy not found")
+
     try:
-        # Delete file from storage
         storage_service.delete_file(policy.s3_key)
-        
-        # Delete from Qdrant vector store
         qdrant_service.delete_policy_chunks(policy.id)
-        
-        # Delete policy database records
-        db.session.delete(policy)
-        db.session.commit()
-        
-        log_audit(user_id, "POLICY_DELETE", f"Deleted policy: {policy.name}")
-        return jsonify({"msg": "Policy deleted successfully"}), 200
-        
+        db.delete(policy)
+        db.commit()
+
+        client_ip = request.client.host if request.client else "System"
+        log_audit(current_user.id, "POLICY_DELETE", f"Deleted policy: {policy.name}", ip_address=client_ip)
+        return {"msg": "Policy deleted successfully"}
     except Exception as e:
-        db.session.rollback()
-        print(f"Error deleting policy: {e}")
-        return jsonify({"msg": "Failed to delete policy", "error": str(e)}), 500
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete policy: {str(e)}")

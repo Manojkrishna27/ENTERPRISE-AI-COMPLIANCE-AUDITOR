@@ -1,34 +1,12 @@
-from functools import wraps
-from flask import request, jsonify
-from flask_jwt_extended import verify_jwt_in_request, get_jwt
-from app.database import db
+from app.core.database import db
 from app.models.audit import AuditLog
 from app.utils.logger import rag_logger
 
-def role_required(*roles):
-    """
-    Decorator to restrict access to users with specific roles.
-    Must be placed after JWT verification.
-    """
-    def decorator(fn):
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            verify_jwt_in_request()
-            claims = get_jwt()
-            user_role = claims.get("role")
-            
-            if user_role not in roles:
-                return jsonify({"msg": f"Access denied. Required roles: {', '.join(roles)}", "error": "forbidden"}), 403
-            return fn(*args, **kwargs)
-        return wrapper
-    return decorator
-
-def log_audit(user_id, action, details):
+def log_audit(user_id: str, action: str, details: str, ip_address: str = "System"):
     """
     Create a new entry in the audit_logs table.
     """
     try:
-        ip_address = request.remote_addr if request else "System"
         log = AuditLog(
             user_id=user_id,
             action=action,
@@ -39,6 +17,3 @@ def log_audit(user_id, action, details):
         db.session.commit()
     except Exception as e:
         rag_logger.error(f"Error logging audit: {e}", exc_info=True)
-        # We do not call db.session.rollback() here because it would destroy
-        # the entire parent transaction (e.g., contract upload or user registration)
-        # that hasn't been committed yet.

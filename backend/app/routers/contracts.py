@@ -1,148 +1,34 @@
 import os
 import uuid
-from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request, BackgroundTasks
+from sqlalchemy.orm import Session
 from werkzeug.utils import secure_filename
-from app.database import db
+
+from app.core.database import get_db
+from app.core.dependencies import get_current_user, role_required
 from app.models.contract import Contract, ContractVersion, ContractChunk
 from app.models.user import User
 from app.services.s3_service import storage_service
 from app.services.document_parser import DocumentParser
 from app.services.qdrant_service import qdrant_service
-from app.utils.security import role_required, log_audit
+from app.utils.security import log_audit
 
-contracts_bp = Blueprint('contracts', __name__)
+router = APIRouter(prefix="/api/contracts", tags=["Contracts"])
 
 ALLOWED_EXTENSIONS = {'pdf', 'docx'}
 
-def allowed_file(filename):
+def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@contracts_bp.route('', methods=['GET'])
-@jwt_required()
-def list_contracts():
-    """
-    List all contracts
-    ---
-    tags:
-      - Contracts
-    security:
-      - Bearer: []
-    parameters:
-      - in: query
-        name: department_id
-        type: string
-      - in: query
-        name: status
-        type: string
-    responses:
-      200:
-        description: List of contracts
-    """
-    limiter = current_app.extensions['limiter']
-    limiter.limit("60 per minute")(lambda: None)()
-    
-    dept_id = request.args.get('department_id')
-    status = request.args.get('status')
-    
-    query = Contract.query
-    if dept_id:
-        query = query.filter_by(department_id=dept_id)
-    if status:
-        query = query.filter_by(status=status)
-        
-    contracts = query.order_by(Contract.updated_at.desc()).all()
-    return jsonify([c.to_dict() for c in contracts]), 200
-
-
-@contracts_bp.route('', methods=['POST'])
-@jwt_required()
-@role_required('Admin', 'Compliance Officer', 'Legal Reviewer', 'Auditor')
-def upload_contract():
-    """
-    Upload a new contract
-    ---
-    tags:
-      - Contracts
-    security:
-      - Bearer: []
-    parameters:
-      - in: formData
-        name: file
-        type: file
-        required: true
-      - in: formData
-        name: name
-        type: string
-        required: true
-    responses:
-      201:
-        description: Contract uploaded
-    """
-    limiter = current_app.extensions['limiter']
-    limiter.limit("10 per minute")(lambda: None)()
-    
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    # Validate file presence
-    if 'file' not in request.files:
-        return jsonify({"msg": "No file part in the request"}), 400
-        
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"msg": "No file selected"}), 400
-
-    name = request.form.get('name')
-    description = request.form.get('description', '')
-    department_id = request.form.get('department_id')
-    if not department_id:
-        department_id = user.department_id
-
-    if not name:
-        return jsonify({"msg": "Contract name is required"}), 400
-
-    if not allowed_file(file.filename):
-        return jsonify({"msg": "Unsupported file type. Only PDF and DOCX are allowed."}), 400
-
-    file_ext = file.filename.rsplit('.', 1)[1].lower()
-    
-    # Save contract header
-    contract = Contract(
-        name=name,
-        description=description,
-        department_id=department_id,
-        owner_id=user_id,
-        status='Draft',
-        current_version=1
-    )
-    db.session.add(contract)
-    db.session.flush() # Generate contract ID
-    
-    # S3 Key structure: contracts/<contract_id>/v1_<filename>
-    filename = secure_filename(file.filename)
-    s3_key = f"contracts/{contract.id}/v1_{filename}"
-    
+def process_and_index_contract(version_id: str, local_path: str, file_ext: str):
+    """Background task to parse and index contract chunks into Qdrant."""
+    db = get_db().__next__()
     try:
-        # Upload using storage service (local filesystem fallback or AWS S3)
-        storage_service.upload_file(file, s3_key)
-        
-        # Save version header
-        version = ContractVersion(
-            contract_id=contract.id,
-            version_number=1,
-            s3_key=s3_key,
-            file_type=file_ext.upper(),
-            status='Processing'
-        )
-        db.session.add(version)
-        db.session.flush() # Generate version ID
-        
-        # Parse document to chunks
-        local_path = storage_service.get_file_path(s3_key)
+        version = db.query(ContractVersion).filter(ContractVersion.id == version_id).first()
+        if not version:
+            return
         parsed_chunks = DocumentParser.parse_document(local_path, file_ext)
-        
-        # Save parsed chunks to SQL
         db_chunks = []
         for c in parsed_chunks:
             chunk = ContractChunk(
@@ -153,101 +39,92 @@ def upload_contract():
                 chunk_position=c['chunk_position']
             )
             db_chunks.append(chunk)
-            db.session.add(chunk)
+            db.add(chunk)
             
         version.status = 'Uploaded'
-        db.session.commit()
+        db.commit()
         
-        # Index in Qdrant
         qdrant_service.index_contract_chunks(version.id, db_chunks)
-        db.session.commit() # Save generated qdrant_ids
-        
-        log_audit(user_id, "CONTRACT_UPLOAD", f"Uploaded contract: {name} (Version 1)")
-        
-        return jsonify({
-            "msg": "Contract uploaded and parsed successfully",
-            "contract": contract.to_dict(),
-            "version": version.to_dict(),
-            "chunks_count": len(db_chunks)
-        }), 201
-        
+        db.commit()
     except Exception as e:
-        db.session.rollback()
-        print(f"Error uploading/parsing contract: {e}")
-        return jsonify({"msg": "Failed to process uploaded file", "error": str(e)}), 500
+        db.rollback()
+        print(f"Error in background indexing: {e}")
+    finally:
+        db.close()
 
 
-@contracts_bp.route('/<id>', methods=['GET'])
-@jwt_required()
-def get_contract(id):
-    contract = Contract.query.get(id)
-    if not contract:
-        return jsonify({"msg": "Contract not found"}), 404
+@router.get("", summary="List all contracts", description="Fetch list of contracts filtered by department or status")
+def list_contracts(
+    department_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Contract)
+    if department_id:
+        query = query.filter(Contract.department_id == department_id)
+    if status:
+        query = query.filter(Contract.status == status)
         
-    versions = ContractVersion.query.filter_by(contract_id=id).order_by(ContractVersion.version_number.desc()).all()
-    
-    contract_data = contract.to_dict()
-    contract_data['versions'] = [v.to_dict() for v in versions]
-    return jsonify(contract_data), 200
+    contracts = query.order_by(Contract.updated_at.desc()).all()
+    return [c.to_dict() for c in contracts]
 
 
-@contracts_bp.route('/<id>/versions/<ver_id>', methods=['GET'])
-@jwt_required()
-def get_version(id, ver_id):
-    version = ContractVersion.query.filter_by(id=ver_id, contract_id=id).first()
-    if not version:
-        return jsonify({"msg": "Contract version not found"}), 404
-        
-    chunks = ContractChunk.query.filter_by(version_id=ver_id).order_by(ContractChunk.chunk_position.asc()).all()
-    
-    version_data = version.to_dict()
-    version_data['chunks'] = [c.to_dict() for c in chunks]
-    return jsonify(version_data), 200
+@router.post("", status_code=status.HTTP_201_CREATED, summary="Upload a new contract", description="Upload contract file (PDF/DOCX) and store headers and version details")
+async def upload_contract(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    description: Optional[str] = Form(""),
+    department_id: Optional[str] = Form(None),
+    current_user: User = Depends(role_required('Admin', 'Compliance Officer', 'Legal Reviewer', 'Auditor')),
+    db: Session = Depends(get_db)
+):
+    if not file or not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file selected")
 
-
-@contracts_bp.route('/<id>/versions', methods=['POST'])
-@jwt_required()
-@role_required('Admin', 'Compliance Officer', 'Legal Reviewer', 'Auditor')
-def upload_version(id):
-    contract = Contract.query.get(id)
-    if not contract:
-        return jsonify({"msg": "Contract not found"}), 404
-        
-    if 'file' not in request.files:
-        return jsonify({"msg": "No file part in the request"}), 400
-        
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"msg": "No file selected"}), 400
+    if not name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Contract name is required")
 
     if not allowed_file(file.filename):
-        return jsonify({"msg": "Unsupported file type. Only PDF and DOCX are allowed."}), 400
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type. Only PDF and DOCX are allowed.")
 
+    dept_id = department_id or current_user.department_id
     file_ext = file.filename.rsplit('.', 1)[1].lower()
-    
-    user_id = get_jwt_identity()
-    new_version_num = contract.current_version + 1
     filename = secure_filename(file.filename)
-    s3_key = f"contracts/{contract.id}/v{new_version_num}_{filename}"
-    
+
+    contract = Contract(
+        name=name,
+        description=description or "",
+        department_id=dept_id,
+        owner_id=current_user.id,
+        status='Draft',
+        current_version=1
+    )
+    db.add(contract)
+    db.flush()
+
+    s3_key = f"contracts/{contract.id}/v1_{filename}"
+
     try:
-        # Upload
-        storage_service.upload_file(file, s3_key)
-        
-        # Save version header
+        contents = await file.read()
+        storage_service.upload_file(contents, s3_key)
+
         version = ContractVersion(
             contract_id=contract.id,
-            version_number=new_version_num,
+            version_number=1,
             s3_key=s3_key,
             file_type=file_ext.upper(),
             status='Processing'
         )
-        db.session.add(version)
-        
-        # Parse chunks
+        db.add(version)
+        db.flush()
+
         local_path = storage_service.get_file_path(s3_key)
         parsed_chunks = DocumentParser.parse_document(local_path, file_ext)
-        
+
+        db_chunks = []
         for c in parsed_chunks:
             chunk = ContractChunk(
                 version_id=version.id,
@@ -256,83 +133,193 @@ def upload_version(id):
                 paragraph_number=c['paragraph_number'],
                 chunk_position=c['chunk_position']
             )
-            db.session.add(chunk)
-            
-        # Update contract current version
+            db_chunks.append(chunk)
+            db.add(chunk)
+
+        version.status = 'Uploaded'
+        db.commit()
+
+        # Vector Indexing
+        qdrant_service.index_contract_chunks(version.id, db_chunks)
+        db.commit()
+
+        client_ip = request.client.host if request.client else "System"
+        log_audit(current_user.id, "CONTRACT_UPLOAD", f"Uploaded contract: {name} (Version 1)", ip_address=client_ip)
+
+        return {
+            "msg": "Contract uploaded and parsed successfully",
+            "contract": contract.to_dict(),
+            "version": version.to_dict(),
+            "chunks_count": len(db_chunks)
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to process uploaded file: {str(e)}")
+
+
+@router.get("/{id}", summary="Get contract details", description="Fetch contract by ID with all versions")
+def get_contract(
+    id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    contract = db.query(Contract).filter(Contract.id == id).first()
+    if not contract:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found")
+
+    versions = db.query(ContractVersion).filter(ContractVersion.contract_id == id).order_by(ContractVersion.version_number.desc()).all()
+
+    contract_data = contract.to_dict()
+    contract_data['versions'] = [v.to_dict() for v in versions]
+    return contract_data
+
+
+@router.get("/{id}/versions/{ver_id}", summary="Get contract version details", description="Fetch contract version and parsed text chunks")
+def get_version(
+    id: str,
+    ver_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    version = db.query(ContractVersion).filter(ContractVersion.id == ver_id, ContractVersion.contract_id == id).first()
+    if not version:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract version not found")
+
+    chunks = db.query(ContractChunk).filter(ContractChunk.version_id == ver_id).order_by(ContractChunk.chunk_position.asc()).all()
+
+    version_data = version.to_dict()
+    version_data['chunks'] = [c.to_dict() for c in chunks]
+    return version_data
+
+
+@router.post("/{id}/versions", status_code=status.HTTP_201_CREATED, summary="Upload new contract version", description="Upload new version for an existing contract")
+async def upload_version(
+    id: str,
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(role_required('Admin', 'Compliance Officer', 'Legal Reviewer', 'Auditor')),
+    db: Session = Depends(get_db)
+):
+    contract = db.query(Contract).filter(Contract.id == id).first()
+    if not contract:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found")
+
+    if not file or not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file selected")
+
+    if not allowed_file(file.filename):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type. Only PDF and DOCX are allowed.")
+
+    file_ext = file.filename.rsplit('.', 1)[1].lower()
+    new_version_num = contract.current_version + 1
+    filename = secure_filename(file.filename)
+    s3_key = f"contracts/{contract.id}/v{new_version_num}_{filename}"
+
+    try:
+        contents = await file.read()
+        storage_service.upload_file(contents, s3_key)
+
+        version = ContractVersion(
+            contract_id=contract.id,
+            version_number=new_version_num,
+            s3_key=s3_key,
+            file_type=file_ext.upper(),
+            status='Processing'
+        )
+        db.add(version)
+
+        local_path = storage_service.get_file_path(s3_key)
+        parsed_chunks = DocumentParser.parse_document(local_path, file_ext)
+
+        for c in parsed_chunks:
+            chunk = ContractChunk(
+                version_id=version.id,
+                chunk_text=c['text'],
+                page_number=c['page_number'],
+                paragraph_number=c['paragraph_number'],
+                chunk_position=c['chunk_position']
+            )
+            db.add(chunk)
+
         contract.current_version = new_version_num
         version.status = 'Uploaded'
-        db.session.commit()
-        
-        # Index in Qdrant
-        db_chunks = ContractChunk.query.filter_by(version_id=version.id).all()
+        db.commit()
+
+        db_chunks = db.query(ContractChunk).filter(ContractChunk.version_id == version.id).all()
         qdrant_service.index_contract_chunks(version.id, db_chunks)
-        db.session.commit()
-        
-        log_audit(user_id, "CONTRACT_VERSION_UPLOAD", f"Uploaded version {new_version_num} for contract: {contract.name}")
-        
-        return jsonify({
+        db.commit()
+
+        client_ip = request.client.host if request.client else "System"
+        log_audit(current_user.id, "CONTRACT_VERSION_UPLOAD", f"Uploaded version {new_version_num} for contract: {contract.name}", ip_address=client_ip)
+
+        return {
             "msg": "New contract version uploaded successfully",
             "contract": contract.to_dict(),
             "version": version.to_dict()
-        }), 201
-        
+        }
     except Exception as e:
-        db.session.rollback()
-        print(f"Error uploading version: {e}")
-        return jsonify({"msg": "Failed to upload version", "error": str(e)}), 500
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to upload version: {str(e)}")
 
 
-@contracts_bp.route('/<id>', methods=['DELETE'])
-@jwt_required()
-@role_required('Admin', 'Compliance Officer')
-def delete_contract(id):
-    contract = Contract.query.get(id)
+@router.delete("/{id}", summary="Delete contract", description="Delete contract and all associated versions & vector embeddings")
+def delete_contract(
+    id: str,
+    request: Request,
+    current_user: User = Depends(role_required('Admin', 'Compliance Officer')),
+    db: Session = Depends(get_db)
+):
+    contract = db.query(Contract).filter(Contract.id == id).first()
     if not contract:
-        return jsonify({"msg": "Contract not found"}), 404
-        
-    user_id = get_jwt_identity()
-    
-    # Delete associated files from storage first
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found")
+
     for version in contract.versions:
         try:
             storage_service.delete_file(version.s3_key)
         except Exception as e:
             print(f"Failed to delete file {version.s3_key}: {e}")
-            
-    db.session.delete(contract)
-    db.session.commit()
-    
-    log_audit(user_id, "CONTRACT_DELETE", f"Deleted contract: {contract.name}")
-    return jsonify({"msg": "Contract and all versions deleted successfully"}), 200
+
+    db.delete(contract)
+    db.commit()
+
+    client_ip = request.client.host if request.client else "System"
+    log_audit(current_user.id, "CONTRACT_DELETE", f"Deleted contract: {contract.name}", ip_address=client_ip)
+    return {"msg": "Contract and all versions deleted successfully"}
 
 
-@contracts_bp.route('/<id>/archive', methods=['POST'])
-@jwt_required()
-@role_required('Admin', 'Compliance Officer', 'Legal Reviewer')
-def archive_contract(id):
-    contract = Contract.query.get(id)
+@router.post("/{id}/archive", summary="Archive contract", description="Change contract status to Archived")
+def archive_contract(
+    id: str,
+    request: Request,
+    current_user: User = Depends(role_required('Admin', 'Compliance Officer', 'Legal Reviewer')),
+    db: Session = Depends(get_db)
+):
+    contract = db.query(Contract).filter(Contract.id == id).first()
     if not contract:
-        return jsonify({"msg": "Contract not found"}), 404
-        
-    user_id = get_jwt_identity()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found")
+
     contract.status = 'Archived'
-    db.session.commit()
-    
-    log_audit(user_id, "CONTRACT_ARCHIVE", f"Archived contract: {contract.name}")
-    return jsonify({"msg": "Contract archived successfully", "contract": contract.to_dict()}), 200
+    db.commit()
+
+    client_ip = request.client.host if request.client else "System"
+    log_audit(current_user.id, "CONTRACT_ARCHIVE", f"Archived contract: {contract.name}", ip_address=client_ip)
+    return {"msg": "Contract archived successfully", "contract": contract.to_dict()}
 
 
-@contracts_bp.route('/<id>/restore', methods=['POST'])
-@jwt_required()
-@role_required('Admin', 'Compliance Officer', 'Legal Reviewer')
-def restore_contract(id):
-    contract = Contract.query.get(id)
+@router.post("/{id}/restore", summary="Restore contract", description="Restore archived contract status back to Draft")
+def restore_contract(
+    id: str,
+    request: Request,
+    current_user: User = Depends(role_required('Admin', 'Compliance Officer', 'Legal Reviewer')),
+    db: Session = Depends(get_db)
+):
+    contract = db.query(Contract).filter(Contract.id == id).first()
     if not contract:
-        return jsonify({"msg": "Contract not found"}), 404
-        
-    user_id = get_jwt_identity()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found")
+
     contract.status = 'Draft'
-    db.session.commit()
-    
-    log_audit(user_id, "CONTRACT_RESTORE", f"Restored contract: {contract.name}")
-    return jsonify({"msg": "Contract restored to Draft status", "contract": contract.to_dict()}), 200
+    db.commit()
+
+    client_ip = request.client.host if request.client else "System"
+    log_audit(current_user.id, "CONTRACT_RESTORE", f"Restored contract: {contract.name}", ip_address=client_ip)
+    return {"msg": "Contract restored to Draft status", "contract": contract.to_dict()}

@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -23,8 +23,6 @@ USER appuser
 
 EXPOSE 5000
 
-ENV FLASK_APP=wsgi.py
-ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "wsgi:app"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5000", "--workers", "4"]

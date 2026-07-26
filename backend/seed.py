@@ -1,15 +1,12 @@
-from app import create_app
-from app.database import db
+from app.core.database import db, SessionLocal
 from app.models.user import Department, User
-from app.models.policy import Policy
-import uuid
 
 def seed_database():
-    app = create_app()
-    with app.app_context():
-        print("Recreating database tables...")
-        db.create_all()
+    print("Recreating database tables...")
+    db.create_all()
 
+    session = SessionLocal()
+    try:
         print("Seeding departments...")
         depts_data = [
             ("Legal", "Legal review and compliance checking"),
@@ -21,11 +18,11 @@ def seed_database():
         
         dept_map = {}
         for name, desc in depts_data:
-            dept = Department.query.filter_by(name=name).first()
+            dept = session.query(Department).filter(Department.name == name).first()
             if not dept:
                 dept = Department(name=name, description=desc)
-                db.session.add(dept)
-                db.session.flush() # Populate ID
+                session.add(dept)
+                session.flush()
             dept_map[name] = dept
 
         print("Seeding users...")
@@ -38,7 +35,7 @@ def seed_database():
         ]
 
         for email, pwd, name, role, dept_name in users_data:
-            user = User.query.filter_by(email=email).first()
+            user = session.query(User).filter(User.email == email).first()
             if not user:
                 user = User(
                     email=email,
@@ -49,13 +46,19 @@ def seed_database():
                     is_active=True
                 )
                 user.set_password(pwd)
-                db.session.add(user)
+                session.add(user)
                 print(f"Created user: {email} with role {role}")
             else:
                 print(f"User: {email} already exists")
 
-        db.session.commit()
+        session.commit()
         print("Seeding complete.")
+    except Exception as e:
+        session.rollback()
+        print(f"Error during seeding: {e}")
+        raise e
+    finally:
+        session.close()
 
 if __name__ == '__main__':
     seed_database()

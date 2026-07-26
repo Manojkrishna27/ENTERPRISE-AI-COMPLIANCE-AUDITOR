@@ -6,9 +6,9 @@
 
   <!-- Status badges -->
   <a href="https://github.com/Manojkrishna27/ENTERPRISE-AI-COMPLIANCE-AUDITOR/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen?style=flat-square" alt="Build Status"></a>
-  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python" alt="Python Version"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python" alt="Python Version"></a>
+  <a href="https://fastapi.tiangolo.com"><img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=flat-square&logo=fastapi" alt="FastAPI"></a>
   <a href="https://react.dev"><img src="https://img.shields.io/badge/React-18.2-blue?style=flat-square&logo=react" alt="React"></a>
-  <a href="https://flask.palletsprojects.com/"><img src="https://img.shields.io/badge/Flask-3.0-lightgrey?style=flat-square&logo=flask" alt="Flask"></a>
   <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-Enabled-blue?style=flat-square&logo=docker" alt="Docker"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License: MIT"></a>
 
@@ -89,8 +89,8 @@ From document upload to AI-powered compliance insight — the full pipeline, in 
 | 🧠 **Enterprise RAG Pipeline** | High-fidelity semantic chunking using PyMuPDF and LlamaIndex. |
 | ⚡ **Dynamic AI Adapters** | Provider-agnostic architecture that dynamically supports Google Gemini (`gemini-1.5-flash`, `gemini-embedding-2`) and OpenAI. |
 | 🎯 **Matryoshka Representation Vectors** | 768-dimensional Qdrant embeddings tuned for precise semantic spatial relations during retrieval. |
-| 🔐 **Multi-Tenant Security** | Strict Role-Based Access Control (RBAC), `department_id`-level Qdrant isolation, and Redis-backed JWT blocklisting. |
-| 🛡️ **Production Hardened** | Built-in request tracing (`X-Request-ID`), standardized global error responses, `Flask-Limiter` rate limiting, and deep Kubernetes-style `/ready` probes. |
+| 🔐 **Multi-Tenant Security** | Strict Role-Based Access Control (RBAC), `department_id`-level Qdrant isolation, `python-jose` OAuth2 tokens, and Redis-backed JWT blocklisting. |
+| 🛡️ **Production Hardened** | Built-in request tracing (`X-Request-ID`), FastAPI global error handlers, Pydantic v2 schemas, auto-generated OpenAPI `/docs`, and deep `/ready` probes. |
 | 📊 **Real-Time Interactive Dashboard** | Built with React, Recharts, and Tailwind CSS for seamless data visualization and Copilot interaction. |
 
 ---
@@ -106,14 +106,16 @@ The platform uses a containerized microservices architecture for isolated scalin
 - **Data Visualization**: Recharts
 
 ### Backend
-- **Core API**: Python 3.11, Flask, Gunicorn
+- **Core API**: Python 3.12, FastAPI, Uvicorn (ASGI)
+- **Validation**: Pydantic v2
+- **Auth**: `python-jose`, `passlib[bcrypt]`, OAuth2 Dependency Injection
 - **AI Core**: LlamaIndex, Google Gemini API / OpenAI
 - **Document Processing**: PyMuPDF, python-docx
 
 ### Infrastructure & Data Tier
-- **Relational DB**: PostgreSQL 15 (ACID compliant)
+- **Relational DB**: PostgreSQL 15 & SQLAlchemy 2.0
 - **Vector DB**: Qdrant (high-performance semantic search)
-- **Cache & Rate Limiting**: Redis (JWT blocklisting, `Flask-Limiter`)
+- **Cache & Security**: Redis (JWT blocklisting, session token management)
 - **Deployment**: Docker Compose, Nginx reverse proxy (load balancing)
 
 *(See [`docs/diagrams/system-architecture.puml`](./docs/diagrams/system-architecture.puml) for the full architectural diagram.)*

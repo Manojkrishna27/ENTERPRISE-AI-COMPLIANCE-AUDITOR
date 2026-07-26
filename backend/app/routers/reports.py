@@ -1,50 +1,55 @@
 import io
 import os
 import uuid
-from flask import Blueprint, request, jsonify, send_file
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from app.database import db
+
+from app.core.database import get_db
+from app.core.dependencies import get_current_user
 from app.models.contract import Contract, ContractVersion
 from app.models.audit import AIFinding, Report
 from app.models.user import User
 from app.services.s3_service import storage_service
 from app.utils.security import log_audit
 
-reports_bp = Blueprint('reports', __name__)
+router = APIRouter(prefix="/api/reports", tags=["Reports"])
 
-@reports_bp.route('', methods=['GET'])
-@jwt_required()
-def list_reports():
-    contract_id = request.args.get('contract_id')
-    query = Report.query
+@router.get("", summary="List audit reports", description="Fetch list of audit reports filtered by contract ID")
+def list_reports(
+    contract_id: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Report)
     if contract_id:
-        query = query.filter_by(contract_id=contract_id)
+        query = query.filter(Report.contract_id == contract_id)
     reports = query.order_by(Report.created_at.desc()).all()
-    return jsonify([r.to_dict() for r in reports]), 200
+    return [r.to_dict() for r in reports]
 
 
-@reports_bp.route('/contracts/<contract_id>/version/<ver_id>/generate', methods=['POST'])
-@jwt_required()
-def generate_report(contract_id, ver_id):
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    
-    contract = Contract.query.get(contract_id)
-    version = ContractVersion.query.filter_by(id=ver_id, contract_id=contract_id).first()
-    
+@router.post("/contracts/{contract_id}/version/{ver_id}/generate", status_code=status.HTTP_201_CREATED, summary="Generate compliance PDF report", description="Generate executive PDF compliance audit report for contract version")
+def generate_report(
+    contract_id: str,
+    ver_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    contract = db.query(Contract).filter(Contract.id == contract_id).first()
+    version = db.query(ContractVersion).filter(ContractVersion.id == ver_id, ContractVersion.contract_id == contract_id).first()
+
     if not contract or not version:
-        return jsonify({"msg": "Contract or version not found"}), 404
-        
-    findings = AIFinding.query.filter_by(version_id=ver_id).all()
-    
-    # Create PDF in-memory buffer
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract or version not found")
+
+    findings = db.query(AIFinding).filter(AIFinding.version_id == ver_id).all()
+
     pdf_buffer = io.BytesIO()
-    
-    # Setup document template
     doc = SimpleDocTemplate(
         pdf_buffer,
         pagesize=letter,
@@ -53,19 +58,18 @@ def generate_report(contract_id, ver_id):
         topMargin=40,
         bottomMargin=40
     )
-    
-    # Custom styles
+
     styles = getSampleStyleSheet()
-    
+
     title_style = ParagraphStyle(
         'ReportTitle',
         parent=styles['Heading1'],
         fontName='Helvetica-Bold',
         fontSize=24,
-        textColor=colors.HexColor('#0F172A'), # Charcoal / Navy slate
+        textColor=colors.HexColor('#0F172A'),
         spaceAfter=15
     )
-    
+
     section_style = ParagraphStyle(
         'SectionHeader',
         parent=styles['Heading2'],
@@ -75,7 +79,7 @@ def generate_report(contract_id, ver_id):
         spaceBefore=15,
         spaceAfter=10
     )
-    
+
     body_style = ParagraphStyle(
         'Body',
         parent=styles['Normal'],
@@ -90,27 +94,23 @@ def generate_report(contract_id, ver_id):
         parent=body_style,
         fontName='Helvetica-Bold'
     )
-    
-    # Document story elements
+
     story = []
-    
-    # Header Section
     story.append(Paragraph("Enterprise Contract Compliance Audit Report", title_style))
     story.append(Paragraph(f"<b>Contract Name:</b> {contract.name}", body_style))
     story.append(Paragraph(f"<b>Version Reviewed:</b> Version {version.version_number}", body_style))
     story.append(Paragraph(f"<b>Date Generated:</b> {version.created_at.strftime('%Y-%m-%d %H:%M:%S')}", body_style))
-    story.append(Paragraph(f"<b>Audited By:</b> {user.full_name} ({user.role})", body_style))
+    story.append(Paragraph(f"<b>Audited By:</b> {current_user.full_name} ({current_user.role})", body_style))
     story.append(Spacer(1, 15))
-    
-    # Executive Summary Card
+
     story.append(Paragraph("Executive Summary", section_style))
     high_count = sum(1 for f in findings if f.risk_level == 'High')
     med_count = sum(1 for f in findings if f.risk_level == 'Medium')
     low_count = sum(1 for f in findings if f.risk_level == 'Low')
-    
+
     compliance_score = 100 - (high_count * 15 + med_count * 5 + low_count * 1)
-    compliance_score = max(0, min(100, compliance_score)) # Keep bounds [0, 100]
-    
+    compliance_score = max(0, min(100, compliance_score))
+
     summary_text = (
         f"A thorough Retrieval-Augmented Generation (RAG) audit was conducted on this contract version "
         f"against all active compliance guidelines. A total of <b>{len(findings)}</b> risks were identified. "
@@ -118,8 +118,7 @@ def generate_report(contract_id, ver_id):
     )
     story.append(Paragraph(summary_text, body_style))
     story.append(Spacer(1, 10))
-    
-    # Summary Table
+
     table_data = [
         [Paragraph("<b>Risk Metric</b>", bold_body_style), Paragraph("<b>Count</b>", bold_body_style), Paragraph("<b>System Severity</b>", bold_body_style)],
         [Paragraph("High Risk Violations", body_style), str(high_count), "Requires Immediate Amendment"],
@@ -132,14 +131,13 @@ def generate_report(contract_id, ver_id):
         ('ALIGN', (0,0), (-1,-1), 'LEFT'),
         ('BOTTOMPADDING', (0,0), (-1,0), 6),
         ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
-        ('TEXTCOLOR', (1,1), (1,-1), colors.HexColor('#DC2626')), # highlight counts
+        ('TEXTCOLOR', (1,1), (1,-1), colors.HexColor('#DC2626')),
     ]))
     story.append(t)
     story.append(Spacer(1, 20))
-    
-    # Detailed Clause Audits
+
     story.append(Paragraph("Detailed Compliance Findings & Citations", section_style))
-    
+
     if not findings:
         story.append(Paragraph("No compliance breaches or policy deviations detected in this version.", body_style))
     else:
@@ -151,72 +149,68 @@ def generate_report(contract_id, ver_id):
                 story.append(Paragraph(f"<b>Business Impact:</b> {f.business_impact}", body_style))
             if f.recommendation:
                 story.append(Paragraph(f"<b>Remediation Action:</b> {f.recommendation}", body_style))
-            
-            # Citations
+
             citation_text = f"<b>Citations:</b> Contract Page {f.contract_page_number or 'N/A'}, Paragraph {f.contract_paragraph_number or 'N/A'}"
             if f.policy:
                 citation_text += f" | Policy '{f.policy.name}' Page {f.policy_page_number or 'N/A'}, Paragraph {f.policy_paragraph_number or 'N/A'}"
             story.append(Paragraph(citation_text, body_style))
-            
-            # Divider line
+
             story.append(Spacer(1, 5))
             divider = Table([[""]], colWidths=[530], rowHeights=[1])
             divider.setStyle(TableStyle([('LINEBELOW', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0'))]))
             story.append(divider)
             story.append(Spacer(1, 10))
-            
-    # Build Document
+
     doc.build(story)
-    
     pdf_buffer.seek(0)
     pdf_bytes = pdf_buffer.getvalue()
-    
-    # Save Report record and file
+
     report_id = str(uuid.uuid4())
     s3_key = f"reports/{report_id}.pdf"
-    
+
     try:
         storage_service.upload_file(pdf_bytes, s3_key)
-        
+
         report = Report(
             id=report_id,
             name=f"Compliance Audit - {contract.name} (V{version.version_number})",
             report_type="Compliance Report",
             s3_key=s3_key,
-            created_by=user_id,
+            created_by=current_user.id,
             contract_id=contract.id
         )
-        db.session.add(report)
-        db.session.commit()
-        
-        log_audit(user_id, "REPORT_GENERATE", f"Generated compliance report for contract: {contract.name}")
-        
-        return jsonify({
+        db.add(report)
+        db.commit()
+
+        client_ip = request.client.host if request.client else "System"
+        log_audit(current_user.id, "REPORT_GENERATE", f"Generated compliance report for contract: {contract.name}", ip_address=client_ip)
+
+        return {
             "msg": "Report generated successfully",
             "report": report.to_dict()
-        }), 201
-        
+        }
     except Exception as e:
-        db.session.rollback()
-        print(f"Error generating PDF report: {e}")
-        return jsonify({"msg": "Failed to generate report", "error": str(e)}), 500
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to generate report: {str(e)}")
 
 
-@reports_bp.route('/<id>/download', methods=['GET'])
-@jwt_required()
-def download_report(id):
-    report = Report.query.get(id)
+@router.get("/{id}/download", summary="Download report PDF", description="Download generated compliance PDF report binary file")
+def download_report(
+    id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    report = db.query(Report).filter(Report.id == id).first()
     if not report:
-        return jsonify({"msg": "Report not found"}), 404
-        
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+
     try:
         local_path = storage_service.get_file_path(report.s3_key)
-        return send_file(
-            local_path,
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=f"{report.name.replace(' ', '_')}.pdf"
+        download_name = f"{report.name.replace(' ', '_')}.pdf"
+        return FileResponse(
+            path=local_path,
+            media_type='application/pdf',
+            filename=download_name
         )
     except Exception as e:
-        print(f"Error fetching report for download: {e}")
-        return jsonify({"msg": "Failed to retrieve report binary file", "error": str(e)}), 500
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to retrieve report binary file: {str(e)}")

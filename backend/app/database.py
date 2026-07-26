@@ -1,5 +1,3 @@
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
+from app.core.database import db, get_db, engine, SessionLocal, Base
 
-db = SQLAlchemy()
-migrate = Migrate()
+__all__ = ["db", "get_db", "engine", "SessionLocal", "Base"]

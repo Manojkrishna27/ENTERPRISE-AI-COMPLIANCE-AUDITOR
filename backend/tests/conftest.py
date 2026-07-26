@@ -1,48 +1,39 @@
 import pytest
-from app import create_app
-from app.database import db
+from fastapi.testclient import TestClient
+from app.main import app
+from app.core.database import db, SessionLocal
 from app.models.user import Department, User
 
-class TestConfig:
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = 'test-secret'
-    REDIS_URL = 'redis://redis:6379/1'  # Separate DB for tests
-    USE_LOCAL_STORAGE = True
-    LOCAL_STORAGE_DIR = '/tmp/test_uploads'
+@pytest.fixture(scope="session")
+def client():
+    with TestClient(app) as c:
+        yield c
 
-@pytest.fixture
-def app():
-    app = create_app(TestConfig)
+@pytest.fixture(autouse=True)
+def setup_db():
+    db.create_all()
+    session = SessionLocal()
     
-    with app.app_context():
-        db.create_all()
-        # Seed test data
-        dept = Department(name="Test Dept")
-        db.session.add(dept)
-        db.session.commit()
+    # Check if test dept exists
+    dept = session.query(Department).filter(Department.name == "Test Dept").first()
+    if not dept:
+        dept = Department(name="Test Dept", description="Test Department")
+        session.add(dept)
+        session.flush()
         
+    user = session.query(User).filter(User.email == "test@example.com").first()
+    if not user:
         user = User(
             email="test@example.com",
-            password_hash="test",  # simplified
-            name="Test User",
+            full_name="Test User",
             role="Admin",
-            department_id=dept.id
+            department_id=dept.id,
+            is_verified=True,
+            is_active=True
         )
-        db.session.add(user)
-        db.session.commit()
+        user.set_password("password123")
+        session.add(user)
         
-        yield app
-        
-        db.session.remove()
-        db.drop_all()
-
-@pytest.fixture
-def client(app):
-    return app.test_client()
-
-@pytest.fixture
-def test_user(app):
-    with app.app_context():
-        return User.query.filter_by(email="test@example.com").first()
+    session.commit()
+    session.close()
+    yield
