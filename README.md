@@ -241,17 +241,18 @@ No — retrieval is scoped by `department_id` at the vector-store level, so a qu
 
 ---
 
-## 📚 Detailed Documentation
+## 📚 Detailed Documentation & Production Reports
 
-Dive deeper into the system's architecture and capabilities in the `docs/` directory:
+Dive deeper into the system's architecture, security, performance, and audit reports in the `docs/` directory:
 
-- 📖 [Architecture & System Design](./docs/ARCHITECTURE.md)
-- 🔌 [API Reference](./docs/API_REFERENCE.md)
-- 🧠 [RAG Workflow](./docs/RAG_WORKFLOW.md)
-- 🛡️ [Security Threat Model & OWASP Audit](./docs/SECURITY_AUDIT.md)
-- 📊 [Performance Benchmarks](./docs/PERFORMANCE_BENCHMARK.md)
+- 🏆 [Final Production Readiness Report](./docs/FINAL_PRODUCTION_READINESS_REPORT.md)
+- 🛡️ [Security Audit & OWASP Report](./docs/SECURITY_AUDIT_REPORT.md)
+- 📊 [Performance & Latency Benchmark](./docs/PERFORMANCE_BENCHMARK.md)
+- 🗄️ [Database Architecture Audit](./docs/DATABASE_AUDIT.md)
+- 🧠 [RAG Pipeline & AI Validation Report](./docs/RAG_VALIDATION_REPORT.md)
+- 🔌 [REST API Audit & Test Report](./docs/API_TEST_REPORT.md)
 - 📋 [Production Deployment Checklist](./docs/DEPLOYMENT_CHECKLIST.md)
-- 🏆 [Final Production Report](./docs/FINAL_PRODUCTION_REPORT.md)
+- 📌 [Known Limitations & Roadmap](./docs/KNOWN_LIMITATIONS.md)
 
 ---
 
