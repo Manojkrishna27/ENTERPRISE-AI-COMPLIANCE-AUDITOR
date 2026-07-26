@@ -7,7 +7,7 @@ from openai import OpenAI
 class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
     def __init__(self, api_key: str):
         super().__init__(api_key)
-        self.client = OpenAI(api_key=self.api_key)
+        self.client = OpenAI(api_key=self.api_key or "mock-key-for-ci")
 
     @property
     def provider_name(self) -> str:
