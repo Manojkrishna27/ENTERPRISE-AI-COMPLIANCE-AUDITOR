@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any
 
-from jose import JWTError, jwt
+from jose import jwt
 from passlib.context import CryptContext
 from werkzeug.security import check_password_hash as werkzeug_check_hash
 from werkzeug.security import generate_password_hash as werkzeug_gen_hash
@@ -13,7 +13,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    if hashed_password.startswith("scrypt:") or hashed_password.startswith("pbkdf2:"):
+    if hashed_password.startswith(("scrypt:", "pbkdf2:")):
         return werkzeug_check_hash(hashed_password, plain_password)
     try:
         return pwd_context.verify(plain_password, hashed_password)
@@ -56,10 +56,4 @@ def create_access_token(
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    try:
-        payload = jwt.decode(
-            token, settings.JWT_SECRET_KEY, algorithms=[settings.ALGORITHM]
-        )
-        return payload
-    except JWTError as e:
-        raise e
+    return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.ALGORITHM])

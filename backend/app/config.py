@@ -12,13 +12,13 @@ class Config:
     JWT_SECRET_KEY = os.environ.get(
         "JWT_SECRET_KEY", "jwt-secret-key-change-in-production"
     )
-    JWT_TOKEN_LOCATION = ["headers", "query_string"]
+    JWT_TOKEN_LOCATION = ("headers", "query_string")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
     # Enable token blocklisting
     JWT_BLACKLIST_ENABLED = True
-    JWT_BLACKLIST_TOKEN_CHECKS = ["access", "refresh"]
+    JWT_BLACKLIST_TOKEN_CHECKS = ("access", "refresh")
 
     # Check if running inside docker container
     is_docker = (

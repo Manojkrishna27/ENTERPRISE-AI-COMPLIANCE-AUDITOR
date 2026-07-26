@@ -31,6 +31,8 @@ jobs:
     name: Backend Quality, Security & Unit Tests
     runs-on: ubuntu-latest
     needs: [secret-validation]
+    env:
+      PYTHONPATH: backend
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
