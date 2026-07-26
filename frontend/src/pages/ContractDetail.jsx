@@ -7,7 +7,6 @@ import {
   MessageSquare, 
   ShieldAlert, 
   BookOpen, 
-  Columns,
   History,
   Send,
   AlertTriangle
@@ -84,6 +83,7 @@ const ContractDetail = () => {
       setLoading(false)
     }
     init()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const handleVersionChange = async (verId) => {

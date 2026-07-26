@@ -1,6 +1,7 @@
+from app.ai_config import ai_config
 from app.services.providers.factory import llm_provider
 from app.utils.logger import rag_logger
-from app.ai_config import ai_config
+
 
 class RAGService:
     def _rerank_chunks(self, chunks):
@@ -9,9 +10,11 @@ class RAGService:
         Qdrant already returns sorted by score, but this explicitly enforces
         the Top K highest relevance across sources if merged.
         """
-        return sorted(chunks, key=lambda x: x.get('score', 0.0), reverse=True)
+        return sorted(chunks, key=lambda x: x.get("score", 0.0), reverse=True)
 
-    def analyze_contract_compliance(self, contract_name, contract_chunks, policy_chunks):
+    def analyze_contract_compliance(
+        self, contract_name, contract_chunks, policy_chunks
+    ):
         """
         Calls LLM to audit retrieved contract chunks against policy chunks.
         Returns the structured JSON with compliance score and citations.
@@ -19,11 +22,11 @@ class RAGService:
         # Re-rank and take top
         top_contract_chunks = self._rerank_chunks(contract_chunks)[:10]
         top_policy_chunks = self._rerank_chunks(policy_chunks)[:10]
-        
+
         contract_context = ""
         for cc in top_contract_chunks:
             contract_context += f"[Chunk ID: {cc.get('id')}] Contract Page {cc.get('page_number')}, Para {cc.get('paragraph_number')}:\n{cc.get('text')}\n\n"
-            
+
         policy_context = ""
         for pc in top_policy_chunks:
             policy_context += f"[Chunk ID: {pc.get('id')}] Policy Page {pc.get('page_number')}, Para {pc.get('paragraph_number')}:\n{pc.get('text')}\n\n"
@@ -74,20 +77,25 @@ RETRIEVED POLICY CONTEXT:
 
 Identify violations, missing clauses, or risks.
 """
-        rag_logger.info("Executing contract compliance analysis LLM call", extra={
-            "rag_metrics": {
-                "action": "llm_generation",
-                "contract": contract_name,
-                "provider": ai_config.provider,
-                "model": ai_config.chat_model,
-                "retrieved_contract_chunks": len(top_contract_chunks),
-                "retrieved_policy_chunks": len(top_policy_chunks)
-            }
-        })
+        rag_logger.info(
+            "Executing contract compliance analysis LLM call",
+            extra={
+                "rag_metrics": {
+                    "action": "llm_generation",
+                    "contract": contract_name,
+                    "provider": ai_config.provider,
+                    "model": ai_config.chat_model,
+                    "retrieved_contract_chunks": len(top_contract_chunks),
+                    "retrieved_policy_chunks": len(top_policy_chunks),
+                }
+            },
+        )
         try:
             return llm_provider.generate_json_response(system_prompt, user_prompt)
         except Exception as e:
-            rag_logger.error(f"LLM analysis call encountered an issue, using fallback findings: {str(e)}")
+            rag_logger.error(
+                f"LLM analysis call encountered an issue, using fallback findings: {e!s}"
+            )
             return {
                 "findings": [
                     {
@@ -99,30 +107,37 @@ Identify violations, missing clauses, or risks.
                         "recommendation": "Confirm indemnification and data protection clauses with Legal.",
                         "confidence": 0.9,
                         "contract_citation": {"page": 1, "paragraph": 1},
-                        "policy_citation": {"page": 1, "paragraph": 1}
+                        "policy_citation": {"page": 1, "paragraph": 1},
                     }
                 ],
                 "compliance_score": 85,
-                "confidence": 0.9
+                "confidence": 0.9,
             }
 
-    def copilot_answer(self, query, contract_name, contract_chunks, policy_chunks, retrieval_metrics=None):
+    def copilot_answer(
+        self,
+        query,
+        contract_name,
+        contract_chunks,
+        policy_chunks,
+        retrieval_metrics=None,
+    ):
         """
         Answers user questions with citations, using strict retrieval and re-ranking.
         """
         # Enforce Top 5
         top_contract_chunks = self._rerank_chunks(contract_chunks)[:5]
         top_policy_chunks = self._rerank_chunks(policy_chunks)[:5]
-        
+
         contract_context = ""
         for cc in top_contract_chunks:
             contract_context += f"[Chunk ID: {cc.get('id')}] Contract Page {cc.get('page_number')}, Para {cc.get('paragraph_number')}:\n{cc.get('text')}\n\n"
-            
+
         policy_context = ""
         for pc in top_policy_chunks:
             policy_context += f"[Chunk ID: {pc.get('id')}] Policy Page {pc.get('page_number')}, Para {pc.get('paragraph_number')}:\n{pc.get('text')}\n\n"
 
-        system_prompt = f"""
+        system_prompt = """
 You are an expert AI Legal & Compliance Copilot.
 Answer the user's question using ONLY the provided Contract and Policy contexts.
 Provide precise citations (e.g. Contract Page X, Paragraph Y, or Policy Page A, Paragraph B).
@@ -140,17 +155,20 @@ CONTRACT CONTEXT:
 POLICY CONTEXT:
 {policy_context if policy_context else "None retrieved."}
 """
-        rag_logger.info("Executing Copilot LLM generation", extra={
-            "rag_metrics": {
-                "action": "llm_generation",
-                "query": query,
-                "provider": ai_config.provider,
-                "model": ai_config.chat_model,
-                "retrieved_contract_chunks": len(top_contract_chunks),
-                "retrieved_policy_chunks": len(top_policy_chunks)
-            }
-        })
-        
+        rag_logger.info(
+            "Executing Copilot LLM generation",
+            extra={
+                "rag_metrics": {
+                    "action": "llm_generation",
+                    "query": query,
+                    "provider": ai_config.provider,
+                    "model": ai_config.chat_model,
+                    "retrieved_contract_chunks": len(top_contract_chunks),
+                    "retrieved_policy_chunks": len(top_policy_chunks),
+                }
+            },
+        )
+
         try:
             res = llm_provider.generate_chat_response(system_prompt, user_prompt)
             answer_content = res.get("content", "")
@@ -158,30 +176,36 @@ POLICY CONTEXT:
             completion_tokens = res.get("completion_tokens", 0)
             latency = res.get("latency", 0.0)
         except Exception as e:
-            rag_logger.error(f"LLM copilot call encountered an issue, using fallback response: {str(e)}")
-            answer_content = f"Based on the retrieved contract context, liability limits and data privacy requirements are defined in Section 1."
+            rag_logger.error(
+                f"LLM copilot call encountered an issue, using fallback response: {e!s}"
+            )
+            answer_content = "Based on the retrieved contract context, liability limits and data privacy requirements are defined in Section 1."
             prompt_tokens = 50
             completion_tokens = 30
             latency = 0.1
-        
+
         retrieved_sources = []
         for cc in top_contract_chunks:
-            retrieved_sources.append({
-                "type": "contract",
-                "chunk_id": cc.get("id"),
-                "page": cc.get("page_number"),
-                "paragraph": cc.get("paragraph_number"),
-                "score": cc.get("score")
-            })
+            retrieved_sources.append(
+                {
+                    "type": "contract",
+                    "chunk_id": cc.get("id"),
+                    "page": cc.get("page_number"),
+                    "paragraph": cc.get("paragraph_number"),
+                    "score": cc.get("score"),
+                }
+            )
         for pc in top_policy_chunks:
-            retrieved_sources.append({
-                "type": "policy",
-                "chunk_id": pc.get("id"),
-                "page": pc.get("page_number"),
-                "paragraph": pc.get("paragraph_number"),
-                "score": pc.get("score")
-            })
-            
+            retrieved_sources.append(
+                {
+                    "type": "policy",
+                    "chunk_id": pc.get("id"),
+                    "page": pc.get("page_number"),
+                    "paragraph": pc.get("paragraph_number"),
+                    "score": pc.get("score"),
+                }
+            )
+
         metrics = {
             "retrieved_sources_count": len(retrieved_sources),
             "contract_chunks": len(top_contract_chunks),
@@ -190,15 +214,16 @@ POLICY CONTEXT:
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
             "provider": ai_config.provider,
-            "model": ai_config.chat_model
+            "model": ai_config.chat_model,
         }
         if retrieval_metrics:
             metrics.update(retrieval_metrics)
-            
+
         return {
             "answer": answer_content,
             "sources": retrieved_sources,
-            "metrics": metrics
+            "metrics": metrics,
         }
+
 
 rag_service = RAGService()

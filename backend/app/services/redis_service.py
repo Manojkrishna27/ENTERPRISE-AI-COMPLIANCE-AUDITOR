@@ -1,21 +1,27 @@
 import redis
+
 from app.core.config import settings
 from app.utils.logger import rag_logger
+
 
 class RedisService:
     def __init__(self):
         self.redis_client = None
         self.memory_blocklist = set()
         self._init_redis()
-        
+
     def _init_redis(self):
         try:
-            url = getattr(settings, 'REDIS_URL', 'redis://localhost:6379/0')
-            self.redis_client = redis.from_url(url, decode_responses=True, socket_connect_timeout=1)
+            url = getattr(settings, "REDIS_URL", "redis://localhost:6379/0")
+            self.redis_client = redis.from_url(
+                url, decode_responses=True, socket_connect_timeout=1
+            )
             self.redis_client.ping()
             rag_logger.info("Successfully connected to Redis.")
         except Exception as e:
-            rag_logger.warning(f"Failed to connect to Redis, using in-memory blocklist fallback: {e}")
+            rag_logger.warning(
+                f"Failed to connect to Redis, using in-memory blocklist fallback: {e}"
+            )
             self.redis_client = None
 
     def init_app(self, app):
@@ -48,5 +54,6 @@ class RedisService:
             except Exception as e:
                 rag_logger.error(f"Redis blocklist check failed: {e}")
         return False
+
 
 redis_service = RedisService()

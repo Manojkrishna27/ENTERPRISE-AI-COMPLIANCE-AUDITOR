@@ -1,11 +1,13 @@
-from fastapi import Request, HTTPException, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
+import datetime
 import logging
 import traceback
-import datetime
+
+from fastapi import HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 rag_logger = logging.getLogger("rag_auditor")
+
 
 async def http_exception_handler(request: Request, exc: HTTPException):
     request_id = getattr(request.state, "request_id", "")
@@ -16,10 +18,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "status": "error",
             "message": exc.detail if isinstance(exc.detail, str) else str(exc.detail),
             "request_id": request_id,
-            "timestamp": datetime.datetime.utcnow().isoformat()
+            "timestamp": datetime.datetime.utcnow().isoformat(),
         },
-        headers=exc.headers
+        headers=exc.headers,
     )
+
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     request_id = getattr(request.state, "request_id", "")
@@ -33,13 +36,16 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "message": "Invalid request payload",
             "details": errors,
             "request_id": request_id,
-            "timestamp": datetime.datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+        },
     )
+
 
 async def global_exception_handler(request: Request, exc: Exception):
     request_id = getattr(request.state, "request_id", "")
-    rag_logger.error(f"[{request_id}] Unhandled Exception: {str(exc)}\n{traceback.format_exc()}")
+    rag_logger.error(
+        f"[{request_id}] Unhandled Exception: {exc!s}\n{traceback.format_exc()}"
+    )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -48,6 +54,6 @@ async def global_exception_handler(request: Request, exc: Exception):
             "message": "Unexpected server error.",
             "error": str(exc),
             "request_id": request_id,
-            "timestamp": datetime.datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+        },
     )

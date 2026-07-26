@@ -1,8 +1,9 @@
 import uuid
-import pytest
+
 from app.core.config import settings
-from app.models.user import User, Department
 from app.main import init_db_and_seed
+from app.models.user import Department, User
+
 
 def test_init_db_and_seed(db_session):
     """Test that startup initialization idempotently seeds departments and system admin."""
@@ -13,7 +14,7 @@ def test_init_db_and_seed(db_session):
     assert len(departments) >= 1
 
     # Verify an Admin user exists
-    admin = db_session.query(User).filter(User.role == 'Admin').first()
+    admin = db_session.query(User).filter(User.role == "Admin").first()
     assert admin is not None
     assert admin.is_verified is True
     assert admin.is_active is True
@@ -44,7 +45,7 @@ def test_registration_with_auto_verify(client, db_session):
         "email": email,
         "password": "Password123!",
         "full_name": "Auto Verify User",
-        "role": "Viewer"
+        "role": "Viewer",
     }
 
     response = client.post("/api/auth/register", json=payload)
@@ -59,7 +60,9 @@ def test_registration_with_auto_verify(client, db_session):
     assert user.verification_token is None
 
     # Verify login works immediately
-    login_res = client.post("/api/auth/login", json={"email": email, "password": "Password123!"})
+    login_res = client.post(
+        "/api/auth/login", json={"email": email, "password": "Password123!"}
+    )
     assert login_res.status_code == 200
     assert "access_token" in login_res.json()
 
@@ -73,7 +76,7 @@ def test_registration_with_email_verification_required(client, db_session):
         "email": email,
         "password": "Password123!",
         "full_name": "Verify Required User",
-        "role": "Viewer"
+        "role": "Viewer",
     }
 
     response = client.post("/api/auth/register", json=payload)

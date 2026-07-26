@@ -1,11 +1,11 @@
-import os
-import json
 import csv
+import json
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 EVAL_RESULTS_DIR = BASE_DIR / "evaluation_results"
 DOCS_DIR = BASE_DIR / "docs"
+
 
 def generate_all_reports():
     ragas_file = EVAL_RESULTS_DIR / "ragas_results.json"
@@ -15,7 +15,14 @@ def generate_all_reports():
         with open(ragas_file, "r", encoding="utf-8") as f:
             ragas_data = json.load(f)
     else:
-        ragas_data = {"summary": {"overall_ragas_score": 96.5, "faithfulness": 0.97, "context_recall": 0.94, "context_precision": 0.95}}
+        ragas_data = {
+            "summary": {
+                "overall_ragas_score": 96.5,
+                "faithfulness": 0.97,
+                "context_recall": 0.94,
+                "context_precision": 0.95,
+            }
+        }
 
     if deepeval_file.exists():
         with open(deepeval_file, "r", encoding="utf-8") as f:
@@ -25,7 +32,7 @@ def generate_all_reports():
 
     r_summary = ragas_data.get("summary", {})
     d_summary = deepeval_data.get("summary", {})
-    
+
     ret_kpis = d_summary.get("retrieval_kpis", {})
     cit_kpis = d_summary.get("citation_kpis", {})
     sec_kpis = d_summary.get("security_kpis", {})
@@ -43,14 +50,14 @@ def generate_all_reports():
         "Security_Resilience": 100,
         "Multi_Tenant_Isolation": 100,
         "Latency_KPI": 95,
-        "Production_Readiness": 98
+        "Production_Readiness": 98,
     }
 
     # 1. Summary JSON
     summary_export = {
         "scorecard": scorecard,
         "ragas_summary": r_summary,
-        "deepeval_summary": d_summary
+        "deepeval_summary": d_summary,
     }
     with open(EVAL_RESULTS_DIR / "summary.json", "w", encoding="utf-8") as f:
         json.dump(summary_export, f, indent=2)
@@ -60,29 +67,145 @@ def generate_all_reports():
     with open(csv_file, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Metric Domain", "Metric Name", "Value", "Target", "Status"])
-        writer.writerow(["Scorecard", "Overall AI Quality Score", "98/100", ">= 90/100", "PASSED"])
-        writer.writerow(["Scorecard", "Retrieval Quality", "98/100", ">= 90/100", "PASSED"])
+        writer.writerow(
+            ["Scorecard", "Overall AI Quality Score", "98/100", ">= 90/100", "PASSED"]
+        )
+        writer.writerow(
+            ["Scorecard", "Retrieval Quality", "98/100", ">= 90/100", "PASSED"]
+        )
         writer.writerow(["Scorecard", "Faithfulness", "97/100", ">= 95/100", "PASSED"])
-        writer.writerow(["Scorecard", "Hallucination Safety", "100/100", "100/100", "PASSED"])
-        writer.writerow(["Scorecard", "Citation Accuracy", "98/100", ">= 95/100", "PASSED"])
-        writer.writerow(["Scorecard", "Security & Prompt Injection", "100/100", "100/100", "PASSED"])
-        writer.writerow(["Scorecard", "Multi-Tenant Isolation", "100/100", "100/100", "PASSED"])
-        writer.writerow(["Retrieval", "Top-1 Accuracy", f"{ret_kpis.get('top1_accuracy_percent', 100)}%", ">= 90%", "PASSED"])
-        writer.writerow(["Retrieval", "Top-3 Accuracy", f"{ret_kpis.get('top3_accuracy_percent', 100)}%", ">= 95%", "PASSED"])
-        writer.writerow(["Retrieval", "Top-5 Accuracy", f"{ret_kpis.get('top5_accuracy_percent', 100)}%", ">= 98%", "PASSED"])
-        writer.writerow(["Retrieval", "Mean Reciprocal Rank (MRR)", ret_kpis.get("mrr", 1.0), ">= 0.90", "PASSED"])
-        writer.writerow(["Citation", "Correct Document", f"{cit_kpis.get('correct_document_percent', 100)}%", "100%", "PASSED"])
-        writer.writerow(["Citation", "Correct Page Number", f"{cit_kpis.get('correct_page_percent', 100)}%", ">= 95%", "PASSED"])
-        writer.writerow(["Citation", "Correct Paragraph Index", f"{cit_kpis.get('correct_paragraph_percent', 100)}%", ">= 95%", "PASSED"])
-        writer.writerow(["Security", "Cross-Tenant Leakage Rate", f"{sec_kpis.get('cross_tenant_retrieval_rate_percent', 0.0)}%", "0.0%", "PASSED"])
-        writer.writerow(["Security", "Prompt Injection Resistance", f"{sec_kpis.get('prompt_injection_resistance_percent', 100)}%", "100%", "PASSED"])
-        writer.writerow(["Latency", "Embedding Time (ms)", lat_kpis.get("avg_embedding_generation", 12.5), "< 50ms", "PASSED"])
-        writer.writerow(["Latency", "Qdrant Search Time (ms)", lat_kpis.get("avg_qdrant_retrieval", 8.3), "< 25ms", "PASSED"])
-        writer.writerow(["Latency", "LLM Response Time (ms)", lat_kpis.get("avg_llm_response", 180.0), "< 500ms", "PASSED"])
-        writer.writerow(["Latency", "Total End-to-End Latency (ms)", lat_kpis.get("total_end_to_end", 220.0), "< 1000ms", "PASSED"])
+        writer.writerow(
+            ["Scorecard", "Hallucination Safety", "100/100", "100/100", "PASSED"]
+        )
+        writer.writerow(
+            ["Scorecard", "Citation Accuracy", "98/100", ">= 95/100", "PASSED"]
+        )
+        writer.writerow(
+            ["Scorecard", "Security & Prompt Injection", "100/100", "100/100", "PASSED"]
+        )
+        writer.writerow(
+            ["Scorecard", "Multi-Tenant Isolation", "100/100", "100/100", "PASSED"]
+        )
+        writer.writerow(
+            [
+                "Retrieval",
+                "Top-1 Accuracy",
+                f"{ret_kpis.get('top1_accuracy_percent', 100)}%",
+                ">= 90%",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Retrieval",
+                "Top-3 Accuracy",
+                f"{ret_kpis.get('top3_accuracy_percent', 100)}%",
+                ">= 95%",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Retrieval",
+                "Top-5 Accuracy",
+                f"{ret_kpis.get('top5_accuracy_percent', 100)}%",
+                ">= 98%",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Retrieval",
+                "Mean Reciprocal Rank (MRR)",
+                ret_kpis.get("mrr", 1.0),
+                ">= 0.90",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Citation",
+                "Correct Document",
+                f"{cit_kpis.get('correct_document_percent', 100)}%",
+                "100%",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Citation",
+                "Correct Page Number",
+                f"{cit_kpis.get('correct_page_percent', 100)}%",
+                ">= 95%",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Citation",
+                "Correct Paragraph Index",
+                f"{cit_kpis.get('correct_paragraph_percent', 100)}%",
+                ">= 95%",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Security",
+                "Cross-Tenant Leakage Rate",
+                f"{sec_kpis.get('cross_tenant_retrieval_rate_percent', 0.0)}%",
+                "0.0%",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Security",
+                "Prompt Injection Resistance",
+                f"{sec_kpis.get('prompt_injection_resistance_percent', 100)}%",
+                "100%",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Latency",
+                "Embedding Time (ms)",
+                lat_kpis.get("avg_embedding_generation", 12.5),
+                "< 50ms",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Latency",
+                "Qdrant Search Time (ms)",
+                lat_kpis.get("avg_qdrant_retrieval", 8.3),
+                "< 25ms",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Latency",
+                "LLM Response Time (ms)",
+                lat_kpis.get("avg_llm_response", 180.0),
+                "< 500ms",
+                "PASSED",
+            ]
+        )
+        writer.writerow(
+            [
+                "Latency",
+                "Total End-to-End Latency (ms)",
+                lat_kpis.get("total_end_to_end", 220.0),
+                "< 1000ms",
+                "PASSED",
+            ]
+        )
 
     # 3. Interactive Executive HTML Dashboard (dashboard.html)
-    html_content = f"""<!DOCTYPE html>
+    html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -90,15 +213,15 @@ def generate_all_reports():
     <title>Enterprise AI Evaluation Dashboard — RAGAS & DeepEval</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {{ background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; }}
-        .card {{ background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }}
-        .card-header {{ background-color: #0f172a; border-bottom: 1px solid #334155; font-weight: bold; color: #38bdf8; }}
-        .score-hero {{ font-size: 3.5rem; font-weight: 800; color: #4ade80; text-align: center; }}
-        .metric-title {{ color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }}
-        .metric-val {{ font-size: 1.8rem; font-weight: 700; color: #f1f5f9; }}
-        .badge-pass {{ background-color: #15803d; color: #dcfce7; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; }}
-        .table {{ color: #cbd5e1; border-color: #334155; }}
-        .table th {{ color: #38bdf8; background-color: #0f172a; }}
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; }
+        .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .card-header { background-color: #0f172a; border-bottom: 1px solid #334155; font-weight: bold; color: #38bdf8; }
+        .score-hero { font-size: 3.5rem; font-weight: 800; color: #4ade80; text-align: center; }
+        .metric-title { color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .metric-val { font-size: 1.8rem; font-weight: 700; color: #f1f5f9; }
+        .badge-pass { background-color: #15803d; color: #dcfce7; padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; }
+        .table { color: #cbd5e1; border-color: #334155; }
+        .table th { color: #38bdf8; background-color: #0f172a; }
     </style>
 </head>
 <body>
@@ -196,7 +319,7 @@ def generate_all_reports():
         f.write(html_content)
 
     # 4. Markdown Report (docs/AI_EVALUATION_REPORT.md)
-    md_report = f"""# 🏆 Enterprise AI Evaluation & Quality Report
+    md_report = """# 🏆 Enterprise AI Evaluation & Quality Report
 
 **Project**: Enterprise AI Compliance & Contract Auditor  
 **Evaluation Frameworks**: RAGAS + DeepEval + Standalone Retrieval & Security Probes  
@@ -313,11 +436,12 @@ Open [`evaluation_results/dashboard.html`](file:///home/mk/Documents/AIComplianc
     with open(report_file, "w", encoding="utf-8") as f:
         f.write(md_report)
 
-    print(f"✅ All reports successfully generated!")
+    print("✅ All reports successfully generated!")
     print(f" - CSV: {csv_file}")
     print(f" - JSON: {EVAL_RESULTS_DIR / 'summary.json'}")
     print(f" - HTML Dashboard: {dashboard_file}")
     print(f" - Markdown: {report_file}")
+
 
 if __name__ == "__main__":
     generate_all_reports()

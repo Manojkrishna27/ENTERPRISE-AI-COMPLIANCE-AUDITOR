@@ -28,7 +28,7 @@ import Navbar from '../components/Navbar'
 const Dashboard = () => {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [_error, setError] = useState('')
 
   useEffect(() => {
     const fetchDashboardData = async () => {

@@ -1,11 +1,13 @@
-import uuid
 import time
+import uuid
+
 
 class TaskStatus:
     QUEUED = "Queued"
     RUNNING = "Running"
     COMPLETED = "Completed"
     FAILED = "Failed"
+
 
 class BackgroundTaskManager:
     def __init__(self):
@@ -21,11 +23,13 @@ class BackgroundTaskManager:
             "metadata": metadata or {},
             "error": None,
             "created_at": time.time(),
-            "updated_at": time.time()
+            "updated_at": time.time(),
         }
         return job_id
 
-    def update_job(self, job_id: str, status: str = None, progress: float = None, error: str = None):
+    def update_job(
+        self, job_id: str, status: str = None, progress: float = None, error: str = None
+    ):
         if job_id in self.jobs:
             if status:
                 self.jobs[job_id]["status"] = status
@@ -40,11 +44,12 @@ class BackgroundTaskManager:
 
     def retry_job(self, job_id: str) -> bool:
         if job_id in self.jobs:
-            self.jobs[job_id]["status"] = TaskStatus.QUEUED,
+            self.jobs[job_id]["status"] = (TaskStatus.QUEUED,)
             self.jobs[job_id]["progress"] = 0.0
             self.jobs[job_id]["error"] = None
             self.jobs[job_id]["updated_at"] = time.time()
             return True
         return False
+
 
 task_manager = BackgroundTaskManager()

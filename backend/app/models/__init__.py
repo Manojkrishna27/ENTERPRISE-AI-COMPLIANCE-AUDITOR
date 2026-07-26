@@ -1,19 +1,19 @@
-from app.models.user import User, Department
-from app.models.contract import Contract, ContractVersion, ContractChunk
-from app.models.policy import Policy, PolicyChunk
 from app.models.audit import AIFinding, AuditLog, Report
+from app.models.contract import Contract, ContractChunk, ContractVersion
 from app.models.notification import Notification
+from app.models.policy import Policy, PolicyChunk
+from app.models.user import Department, User
 
 __all__ = [
-    'User',
-    'Department',
-    'Contract',
-    'ContractVersion',
-    'ContractChunk',
-    'Policy',
-    'PolicyChunk',
-    'AIFinding',
-    'AuditLog',
-    'Report',
-    'Notification'
+    "AIFinding",
+    "AuditLog",
+    "Contract",
+    "ContractChunk",
+    "ContractVersion",
+    "Department",
+    "Notification",
+    "Policy",
+    "PolicyChunk",
+    "Report",
+    "User",
 ]

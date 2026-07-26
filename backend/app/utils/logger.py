@@ -1,7 +1,8 @@
-import logging
 import json
+import logging
 import sys
 from datetime import datetime
+
 
 class JSONFormatter(logging.Formatter):
     def format(self, record):
@@ -11,14 +12,15 @@ class JSONFormatter(logging.Formatter):
             "message": record.getMessage(),
             "module": record.module,
         }
-        
-        if hasattr(record, 'rag_metrics'):
+
+        if hasattr(record, "rag_metrics"):
             log_record["rag_metrics"] = record.rag_metrics
-            
+
         if record.exc_info:
             log_record["exc_info"] = self.formatException(record.exc_info)
-            
+
         return json.dumps(log_record)
+
 
 def get_rag_logger():
     logger = logging.getLogger("rag_auditor")
@@ -28,5 +30,6 @@ def get_rag_logger():
         handler.setFormatter(JSONFormatter())
         logger.addHandler(handler)
     return logger
+
 
 rag_logger = get_rag_logger()
