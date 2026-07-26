@@ -14,6 +14,8 @@ __pycache__/
 *$py.class
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+htmlcov/
 .coverage
 .coverage.*
 
@@ -24,22 +26,54 @@ dist/
 frontend/dist/
 .eslintcache
 .vite/
+frontend/.vite/
+.next/
+build/
+*.tsbuildinfo
 
 # Databases and Local Storage
 instance/
 backend/instance/
 compliance.db
+backend/compliance.db
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 backend/uploads/
 uploads/
+
+# Logs and temporary files
+*.log
+logs/
+backend/logs/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
 
 # Environment configurations and secrets
 .env
 *.env
 !.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# OS files
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-
-
-

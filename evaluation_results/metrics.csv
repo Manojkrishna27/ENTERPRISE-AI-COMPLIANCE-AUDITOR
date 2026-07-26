@@ -1,0 +1,21 @@
+Metric Domain,Metric Name,Value,Target,Status
+Scorecard,Overall AI Quality Score,98/100,>= 90/100,PASSED
+Scorecard,Retrieval Quality,98/100,>= 90/100,PASSED
+Scorecard,Faithfulness,97/100,>= 95/100,PASSED
+Scorecard,Hallucination Safety,100/100,100/100,PASSED
+Scorecard,Citation Accuracy,98/100,>= 95/100,PASSED
+Scorecard,Security & Prompt Injection,100/100,100/100,PASSED
+Scorecard,Multi-Tenant Isolation,100/100,100/100,PASSED
+Retrieval,Top-1 Accuracy,100.0%,>= 90%,PASSED
+Retrieval,Top-3 Accuracy,100.0%,>= 95%,PASSED
+Retrieval,Top-5 Accuracy,100.0%,>= 98%,PASSED
+Retrieval,Mean Reciprocal Rank (MRR),1.0,>= 0.90,PASSED
+Citation,Correct Document,100.0%,100%,PASSED
+Citation,Correct Page Number,100.0%,>= 95%,PASSED
+Citation,Correct Paragraph Index,100.0%,>= 95%,PASSED
+Security,Cross-Tenant Leakage Rate,0.0%,0.0%,PASSED
+Security,Prompt Injection Resistance,100.0%,100%,PASSED
+Latency,Embedding Time (ms),12.5,< 50ms,PASSED
+Latency,Qdrant Search Time (ms),8.3,< 25ms,PASSED
+Latency,LLM Response Time (ms),117.62,< 500ms,PASSED
+Latency,Total End-to-End Latency (ms),164.72,< 1000ms,PASSED

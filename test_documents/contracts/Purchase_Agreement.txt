@@ -1,0 +1,4 @@
+PURCHASE AGREEMENT
+Section 1. Goods Purchased: 500 Enterprise Server Racks model SR-9000.
+Section 2. Inspection & Acceptance: Customer has 14 calendar days upon delivery to inspect and reject defective hardware.
+Section 3. Hardware Warranty: 3-year full replacement warranty for defective parts.

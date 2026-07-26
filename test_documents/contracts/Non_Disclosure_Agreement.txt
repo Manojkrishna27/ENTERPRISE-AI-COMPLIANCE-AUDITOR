@@ -1,0 +1,4 @@
+NON-DISCLOSURE AGREEMENT (NDA)
+Section 1. Definition of Confidential Information: Proprietary software code, customer records, financial projections, and security audit logs disclosed by Disclosing Party.
+Section 2. Obligations: Receiving Party agrees to hold all Confidential Information in strict confidence for 5 years from disclosure.
+Section 3. Exclusions: Information that is publicly known or independently developed without reference to Confidential Information is excluded.

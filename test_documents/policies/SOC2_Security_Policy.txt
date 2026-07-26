@@ -1,0 +1,4 @@
+SOC 2 TYPE II SECURITY POLICY
+Section 1. Access Control & RBAC: Multi-Factor Authentication (MFA) is mandatory for all production system access. Role-Based Access Control (RBAC) must enforce least-privilege principle.
+Section 2. Encryption Standards: All data at rest must be encrypted using AES-256. Data in transit must use TLS 1.3.
+Section 3. Audit Logging: Production logs must be immutable and retained for a minimum of 365 days.

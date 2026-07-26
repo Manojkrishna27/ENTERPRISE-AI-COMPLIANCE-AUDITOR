@@ -1,0 +1,4 @@
+EMPLOYMENT AGREEMENT
+Section 1. Position: Senior Software Engineer reporting to VP of Engineering.
+Section 2. Non-Compete & IP: All intellectual property created during employment belongs exclusively to Company. Non-compete clause applies for 12 months post-employment within a 50-mile radius.
+Section 3. Severance: 2 months salary upon termination without cause.

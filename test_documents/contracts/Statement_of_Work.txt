@@ -1,0 +1,4 @@
+STATEMENT OF WORK (SOW) #104
+Section 1. Deliverables: Vendor shall complete Phase 1 migration of customer support database to AWS PostgreSQL by Q3 2026.
+Section 2. Milestones & Payment: Total fixed fee of $250,000. Milestone 1 ($100,000) upon architecture signoff; Milestone 2 ($150,000) upon final acceptance testing.
+Section 3. Warranties: Vendor warrants that deliverables will perform substantially in accordance with documentation for 90 days post-acceptance.

@@ -1,0 +1,6 @@
+MASTER SERVICE AGREEMENT (MSA)
+Section 1. Scope of Services: Vendor agrees to provide enterprise software maintenance and cloud support services.
+Section 2. Liability & Indemnification: Vendor liability for direct damages shall not exceed $1,000,000. Indirect, special, or consequential damages are explicitly excluded.
+Section 3. Data Protection: Vendor shall process Customer personal data strictly in compliance with GDPR and applicable privacy laws. Security breaches must be reported within 24 hours.
+Section 4. Payment Terms: Invoices are payable net 30 days. Late payments incur a interest rate of 1.5% per month.
+Section 5. Termination: Either party may terminate with 60 days prior written notice.

@@ -1,0 +1,5 @@
+DATA PROCESSING AGREEMENT (DPA)
+Section 1. GDPR Compliance: Processor agrees to process personal data solely under Controller's documented instructions.
+Section 2. Sub-processors: Processor shall not engage sub-processors without prior written authorization from Controller.
+Section 3. Security Measures: Processor implements AES-256 encryption at rest, TLS 1.3 in transit, and annual ISO 27001 audits.
+Section 4. Breach Notification: Notification of data breaches must be sent to Controller within 24 hours of discovery.

@@ -1,0 +1,3 @@
+PCI DSS v4.0 PAYMENT CARD SECURITY POLICY
+Section 1. Cardholder Data Storage: Primary Account Numbers (PAN) must be masked, hashed, or encrypted. Storage of CVV codes post-authorization is strictly prohibited.
+Section 2. Network Segmentation: Payment processing systems must reside on isolated VLANs protected by strict firewall rules.

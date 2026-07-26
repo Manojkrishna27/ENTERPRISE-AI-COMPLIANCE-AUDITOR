@@ -1,0 +1,4 @@
+VENDOR SERVICE AGREEMENT
+Section 1. Vendor Obligations: Vendor shall provide SLA uptime of 99.9% for cloud hosting services.
+Section 2. SLA Penalties: If uptime falls below 99.5%, Vendor shall issue a 15% billing credit.
+Section 3. Insurance Coverage: Vendor shall maintain minimum Cyber Liability Insurance of $5,000,000 per occurrence.

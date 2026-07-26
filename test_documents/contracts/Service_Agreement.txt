@@ -1,0 +1,4 @@
+SERVICE LEVEL AGREEMENT
+Section 1. Scope: Managed Security Operations Center (SOC) monitoring 24/7/365.
+Section 2. Incident Response: Critical security incidents (Severity 1) must be responded to within 15 minutes.
+Section 3. Audit Access: Customer reserves right to audit SOC operations annually.

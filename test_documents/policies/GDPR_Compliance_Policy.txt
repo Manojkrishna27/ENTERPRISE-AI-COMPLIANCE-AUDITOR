@@ -1,0 +1,4 @@
+GDPR CORPORATE COMPLIANCE POLICY
+Section 1. Data Subject Rights: Requests to delete, rectify, or export personal data must be honored within 30 days.
+Section 2. Mandatory Data Breach Reporting: Any unauthorized access to personal data must be reported to the Supervisory Authority within 72 hours and to affected controllers within 24 hours.
+Section 3. Data Transfer Restrictions: Cross-border transfers outside EU require Standard Contractual Clauses (SCCs) or EU-US Data Privacy Framework certification.
