@@ -47,6 +47,12 @@ Built with **security**, **multi-tenancy**, and **scalability** as first-class c
 
 ## 🎯 Why This Exists
 
+<div align="center">
+  <img src="./screenshots/problem_it_solves.png" alt="The Problem & The Solution" width="100%">
+</div>
+
+<p align="center"><i>Visual breakdown: The pain points of traditional manual contract review vs. how AI-powered automated auditing solves compliance and risk analysis.</i></p>
+
 Manual contract review doesn't scale. Legal teams routinely spend hours per contract cross-referencing clauses against internal policy, and the cost of missing a single non-standard liability or indemnification clause can run into the millions.
 
 This project exists to make that review:
