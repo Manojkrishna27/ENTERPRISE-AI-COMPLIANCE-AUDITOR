@@ -34,7 +34,5 @@ class OpenAIEmbeddingProvider(BaseEmbeddingProvider):
             latency = time.time() - start_time
             return embedding, latency
         except Exception as e:
-            print(
-                f"Failed to generate OpenAI embedding: {e!s}. Using fallback vector."
-            )
+            print(f"Failed to generate OpenAI embedding: {e!s}. Using fallback vector.")
             return [0.01] * self.dimension, 0.05
