@@ -18,13 +18,13 @@ const Register = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await api.get('/admin/departments')
+        const res = await api.get('/auth/departments')
         setDepartments(res.data)
         if (res.data.length > 0) {
           setDepartmentId(res.data[0].id)
         }
       } catch (err) {
-        // Fallback static departments
+        // Fallback static departments if server unreachable
         const fallbackDepts = [
           { id: 'legal-id', name: 'Legal' },
           { id: 'compliance-id', name: 'Compliance' },
@@ -45,19 +45,19 @@ const Register = () => {
     setLoading(true)
 
     try {
-      await api.post('/auth/register', {
+      const res = await api.post('/auth/register', {
         email,
         password,
         full_name: fullName,
         role,
         department_id: departmentId
       })
-      setSuccess('Account created successfully! Redirecting to login...')
+      setSuccess(res.data?.msg || 'Account created successfully! Redirecting to login...')
       setTimeout(() => {
         navigate('/login')
-      }, 2500)
+      }, 2000)
     } catch (err) {
-      setError(err.response?.data?.msg || 'Failed to request account. Please check your entries.')
+      setError(err.response?.data?.detail || err.response?.data?.msg || 'Failed to request account. Please check your entries.')
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,7 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_access_token
 from app.core.dependencies import get_current_user
@@ -17,6 +18,11 @@ from app.schemas.auth import (
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
+@router.get("/departments", summary="List departments for signup", description="Fetch public list of available departments for user registration")
+def public_list_departments(db: Session = Depends(get_db)):
+    depts = db.query(Department).order_by(Department.name.asc()).all()
+    return [d.to_dict() for d in depts]
+
 @router.post("/register", status_code=status.HTTP_201_CREATED, summary="Register a new user", description="Register a new user in the compliance system")
 def register(data: UserRegisterSchema, request: Request, db: Session = Depends(get_db)):
     if not data.email or not data.password or not data.full_name:
@@ -28,15 +34,17 @@ def register(data: UserRegisterSchema, request: Request, db: Session = Depends(g
     if data.department_id:
         dept = db.query(Department).filter(Department.id == data.department_id).first()
         if not dept:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid department_id")
+            legal_dept = db.query(Department).filter(Department.name == 'Legal').first()
+            data.department_id = legal_dept.id if legal_dept else None
 
+    auto_verify = not settings.EMAIL_VERIFICATION_ENABLED
     user = User(
         email=data.email,
         full_name=data.full_name,
         role=data.role or 'Viewer',
         department_id=data.department_id,
-        is_verified=False,
-        verification_token=str(uuid.uuid4())
+        is_verified=auto_verify,
+        verification_token=None if auto_verify else str(uuid.uuid4())
     )
     user.set_password(data.password)
     
@@ -45,10 +53,11 @@ def register(data: UserRegisterSchema, request: Request, db: Session = Depends(g
     db.refresh(user)
 
     client_ip = request.client.host if request.client else "System"
-    log_audit(user.id, "USER_REGISTER", f"Registered new account: {user.email}", ip_address=client_ip)
+    log_audit(user.id, "USER_REGISTER", f"Registered new account: {user.email} (auto_verified={auto_verify})", ip_address=client_ip)
 
+    msg = "User registered successfully! Account is ready for login." if auto_verify else "User registered successfully. Please verify your email."
     return {
-        "msg": "User registered successfully. Please verify your email.",
+        "msg": msg,
         "user": user.to_dict()
     }
 

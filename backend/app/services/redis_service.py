@@ -21,6 +21,9 @@ class RedisService:
     def init_app(self, app):
         self._init_redis()
 
+    def is_connected(self):
+        return self.redis_client is not None
+
     def add_token_to_blocklist(self, jti, expires_in=3600):
         """
         Add a JWT to the blocklist in Redis or in-memory fallback.

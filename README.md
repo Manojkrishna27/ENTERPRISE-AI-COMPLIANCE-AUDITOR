@@ -248,7 +248,9 @@ Dive deeper into the system's architecture and capabilities in the `docs/` direc
 - 📖 [Architecture & System Design](./docs/ARCHITECTURE.md)
 - 🔌 [API Reference](./docs/API_REFERENCE.md)
 - 🧠 [RAG Workflow](./docs/RAG_WORKFLOW.md)
-- 🛡️ [Security Threat Model](./docs/SECURITY.md)
+- 🛡️ [Security Threat Model & OWASP Audit](./docs/SECURITY_AUDIT.md)
+- 📊 [Performance Benchmarks](./docs/PERFORMANCE_BENCHMARK.md)
+- 📋 [Production Deployment Checklist](./docs/DEPLOYMENT_CHECKLIST.md)
 - 🏆 [Final Production Report](./docs/FINAL_PRODUCTION_REPORT.md)
 
 ---

@@ -27,6 +27,9 @@ class QdrantService:
             print(f"Could not connect to Qdrant at {self.host}:{self.port} - {e}. Using in-memory fallback vector DB.")
             self.client = None
 
+    def is_connected(self):
+        return self.client is not None
+
     def _ensure_collection_exists(self, collection_name):
         if not self.client:
             return

@@ -15,6 +15,10 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    EMAIL_VERIFICATION_ENABLED: bool = os.environ.get('EMAIL_VERIFICATION_ENABLED', 'false').lower() == 'true'
+    DEFAULT_ADMIN_EMAIL: str = os.environ.get('DEFAULT_ADMIN_EMAIL', 'admin@contractauditor.com')
+    DEFAULT_ADMIN_PASSWORD: str = os.environ.get('DEFAULT_ADMIN_PASSWORD', 'AdminSecure123!')
+
     is_docker: bool = os.path.exists('/.dockerenv') or os.environ.get('RUNNING_IN_DOCKER') == 'true'
 
     # Database
@@ -23,9 +27,11 @@ class Settings:
         if is_docker:
             db_uri = 'postgresql://postgres:postgres@db:5432/contract_compliance'
         else:
-            db_uri = 'sqlite:///compliance.db'
+            root_db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'compliance.db'))
+            db_uri = f'sqlite:///{root_db_path}'
     elif 'db:5432' in db_uri and not is_docker:
-        db_uri = 'sqlite:///compliance.db'
+        root_db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'compliance.db'))
+        db_uri = f'sqlite:///{root_db_path}'
 
     DATABASE_URL: str = db_uri
     SQLALCHEMY_DATABASE_URI: str = db_uri
