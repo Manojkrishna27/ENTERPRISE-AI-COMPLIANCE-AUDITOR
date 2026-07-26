@@ -128,7 +128,7 @@ def test_e2e_complete_workflow(client):
 
     # --- 5. RAG Compliance Analysis ---
     res_analyze = client.post(f"/api/analysis/contracts/{contract_id}/version/{version_id}/analyze", headers=headers)
-    assert res_analyze.status_code == 200
+    assert res_analyze.status_code == 200, f"Analysis failed: {res_analyze.text}"
     assert "findings_count" in res_analyze.json()
     assert "compliance_score" in res_analyze.json()
 

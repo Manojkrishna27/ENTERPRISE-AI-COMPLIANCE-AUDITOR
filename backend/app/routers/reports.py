@@ -97,9 +97,10 @@ def generate_report(
 
     story = []
     story.append(Paragraph("Enterprise Contract Compliance Audit Report", title_style))
+    created_at_str = version.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(version.created_at, 'strftime') else str(version.created_at)
     story.append(Paragraph(f"<b>Contract Name:</b> {contract.name}", body_style))
     story.append(Paragraph(f"<b>Version Reviewed:</b> Version {version.version_number}", body_style))
-    story.append(Paragraph(f"<b>Date Generated:</b> {version.created_at.strftime('%Y-%m-%d %H:%M:%S')}", body_style))
+    story.append(Paragraph(f"<b>Date Generated:</b> {created_at_str}", body_style))
     story.append(Paragraph(f"<b>Audited By:</b> {current_user.full_name} ({current_user.role})", body_style))
     story.append(Spacer(1, 15))
 
@@ -143,7 +144,8 @@ def generate_report(
     else:
         for idx, f in enumerate(findings):
             story.append(Paragraph(f"<b>Finding #{idx+1}: {f.title}</b>", ParagraphStyle('Sub', parent=body_style, fontSize=11, fontName='Helvetica-Bold', textColor=colors.HexColor('#0F172A'))))
-            story.append(Paragraph(f"<b>Category:</b> {f.category}  |  <b>Risk Level:</b> {f.risk_level}  |  <b>Confidence Score:</b> {int(f.confidence_score*100)}%", body_style))
+            conf_score = int((f.confidence_score or 1.0) * 100)
+            story.append(Paragraph(f"<b>Category:</b> {f.category}  |  <b>Risk Level:</b> {f.risk_level}  |  <b>Confidence Score:</b> {conf_score}%", body_style))
             story.append(Paragraph(f"<b>Explanation:</b> {f.explanation}", body_style))
             if f.business_impact:
                 story.append(Paragraph(f"<b>Business Impact:</b> {f.business_impact}", body_style))

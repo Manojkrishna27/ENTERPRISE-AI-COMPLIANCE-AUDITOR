@@ -57,8 +57,8 @@ def run_analysis(
         raw_findings = analysis_result.get("findings", [])
 
         for f in raw_findings:
-            contract_citation = f.get("contract_citation", {})
-            policy_citation = f.get("policy_citation", {})
+            contract_citation = f.get("contract_citation") or {}
+            policy_citation = f.get("policy_citation") or {}
 
             finding = AIFinding(
                 version_id=version.id,
@@ -167,16 +167,17 @@ def copilot_chat(
             }
         )
 
+        metrics_dict = response_data.get("metrics", {})
         return {
             "question": question,
-            "answer": response_data["content"],
+            "answer": response_data.get("answer") or response_data.get("content", ""),
             "metrics": {
-                "prompt_tokens": response_data.get("prompt_tokens"),
-                "completion_tokens": response_data.get("completion_tokens"),
-                "latency_seconds": round(response_data.get("latency", 0), 2),
-                "model_used": response_data.get("model"),
-                "retrieved_contract": response_data.get("retrieved_contract_chunks"),
-                "retrieved_policy": response_data.get("retrieved_policy_chunks")
+                "prompt_tokens": metrics_dict.get("prompt_tokens", 0),
+                "completion_tokens": metrics_dict.get("completion_tokens", 0),
+                "latency_seconds": round(metrics_dict.get("latency", 0.0), 2),
+                "model_used": metrics_dict.get("model", ""),
+                "retrieved_contract": metrics_dict.get("contract_chunks", 0),
+                "retrieved_policy": metrics_dict.get("policy_chunks", 0)
             }
         }
     except Exception as e:

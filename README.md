@@ -245,7 +245,8 @@ No — retrieval is scoped by `department_id` at the vector-store level, so a qu
 
 Dive deeper into the system's architecture, security, performance, and audit reports in the `docs/` directory:
 
-- 🏆 [Final Production Readiness Report](./docs/FINAL_PRODUCTION_READINESS_REPORT.md)
+- 🏆 [Final Enterprise Production Validation Report](./docs/FINAL_ENTERPRISE_VALIDATION_REPORT.md)
+- 📋 [Final Production Readiness Report](./docs/FINAL_PRODUCTION_READINESS_REPORT.md)
 - 🛡️ [Security Audit & OWASP Report](./docs/SECURITY_AUDIT_REPORT.md)
 - 📊 [Performance & Latency Benchmark](./docs/PERFORMANCE_BENCHMARK.md)
 - 🗄️ [Database Architecture Audit](./docs/DATABASE_AUDIT.md)
